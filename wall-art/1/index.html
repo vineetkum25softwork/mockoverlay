@@ -3,21 +3,28 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Full Screen Camera with Overlay and Capture</title>
+<title>Responsive Camera Preview with Overlay</title>
 <style>
   html, body {
-    margin: 0; padding: 0; height: 100%; width: 100%;
-    overflow: hidden;
-    background: black;
+    margin: 0; padding: 0; height: 100%;
+    background: #000;
     user-select: none;
+    overflow-x: hidden; /* default no horizontal scroll */
+    overflow-y: hidden; /* will toggle in JS */
+  }
+  body {
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
   #previewCanvas {
-    position: fixed;
-    top: 0; left: 0;
-    width: 100vw;
-    height: 100vh;
-    display: block;
     background: #222;
+    border-radius: 20px;
+    cursor: grab;
+    touch-action: none;
+    box-shadow: 0 0 20px #7b2ff7aa;
+    display: block;
+    /* width and height controlled by JS */
   }
   #controls {
     position: fixed;
@@ -58,14 +65,14 @@
     border-radius: 8px;
     z-index: 10;
     user-select: none;
+    display: none;
   }
 </style>
 </head>
 <body>
 
 <div id="loadingText">Loading camera...</div>
-
-<canvas id="previewCanvas"></canvas>
+<canvas id="previewCanvas" aria-label="Camera preview with overlay"></canvas>
 
 <div id="controls">
   <button id="switchCameraBtn" aria-label="Switch Camera">Reverse Camera</button>
@@ -83,11 +90,11 @@
   let usingFrontCamera = true;
   let video = null;
   let overlayImg = new Image();
-  overlayImg.src = 'asset.png'; // overlay PNG path
+  overlayImg.src = 'asset.png'; // overlay PNG
   let isOverlayLoaded = false;
 
-  // Overlay state
-  let overlayState = {
+  // Overlay state for position, scale, rotation, drag data
+  const overlayState = {
     x: null,
     y: null,
     scale: 1,
@@ -98,18 +105,56 @@
     lastY: 0,
   };
 
-  // Resize canvas to fill viewport and update overlay position accordingly
-  function resizeCanvas() {
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
+  // Device width breakpoint to separate mobile/tablet+desktop (can adjust as needed)
+  const mobileMaxWidth = 768;
 
+  // Resize canvas and control body overflow per device width and video aspect ratio
+  function resizeCanvas() {
+    if (!video || video.videoWidth === 0 || video.videoHeight === 0) return;
+
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+    const videoAspect = video.videoWidth / video.videoHeight;
+
+    // Mobile: constrain height to viewport height, width can overflow horizontally (hidden scroll)
+    if (viewportWidth <= mobileMaxWidth) {
+      // Height fixed to viewport height
+      const canvasHeight = viewportHeight;
+      const canvasWidth = canvasHeight * videoAspect;
+
+      canvas.style.height = canvasHeight + 'px';
+      canvas.style.width = canvasWidth + 'px';
+
+      canvas.width = canvasWidth;
+      canvas.height = canvasHeight;
+
+      // prevent scroll on y, allow overflow-x hidden
+      document.body.style.overflowY = 'hidden';
+      document.body.style.overflowX = 'hidden';
+
+    } else {
+      // Tablet/Desktop: constrain width to viewport width, height can overflow vertically (hidden scroll)
+      const canvasWidth = viewportWidth;
+      const canvasHeight = canvasWidth / videoAspect;
+
+      canvas.style.width = canvasWidth + 'px';
+      canvas.style.height = canvasHeight + 'px';
+
+      canvas.width = canvasWidth;
+      canvas.height = canvasHeight;
+
+      // prevent scroll on x, allow overflow-y hidden
+      document.body.style.overflowX = 'hidden';
+      document.body.style.overflowY = 'hidden';
+    }
+
+    // Initialize overlay position/scaling on first resize or if null
     if (overlayState.x === null || overlayState.y === null) {
       overlayState.scale = (canvas.width * 0.7) / overlayImg.width;
       overlayState.x = canvas.width * 0.15;
       overlayState.y = canvas.height * 0.2;
     }
   }
-  window.addEventListener('resize', resizeCanvas);
 
   function startCamera() {
     if (stream) {
@@ -121,14 +166,9 @@
     video.muted = true;
     loadingText.style.display = 'block';
 
-    const constraints = {
-      video: { facingMode: usingFrontCamera ? 'user' : 'environment' },
-      audio: false
-    };
-
-    navigator.mediaDevices.getUserMedia(constraints)
-      .then(_stream => {
-        stream = _stream;
+    navigator.mediaDevices.getUserMedia({video: {facingMode: usingFrontCamera ? "user" : "environment"}, audio:false})
+      .then(s => {
+        stream = s;
         video.srcObject = stream;
         video.onloadedmetadata = () => {
           video.play();
@@ -138,7 +178,7 @@
         };
       })
       .catch(err => {
-        alert('Error accessing camera: ' + err.message);
+        alert("Error accessing camera: " + err.message);
         loadingText.style.display = 'none';
       });
   }
@@ -150,21 +190,21 @@
     }
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // Calculate aspect ratio and letterboxing
-    const videoAR = video.videoWidth / video.videoHeight;
-    const canvasAR = canvas.width / canvas.height;
-
+    // Calculate letterbox style draw area for video to preserve aspect ratio inside canvas
+    const videoAspect = video.videoWidth/video.videoHeight;
+    const canvasAspect = canvas.width/canvas.height;
     let drawWidth, drawHeight, offsetX, offsetY;
-    if (canvasAR > videoAR) {
+
+    if (canvasAspect > videoAspect) {
       drawHeight = canvas.height;
-      drawWidth = drawHeight * videoAR;
-      offsetX = (canvas.width - drawWidth) / 2;
+      drawWidth = drawHeight * videoAspect;
+      offsetX = (canvas.width - drawWidth)/2;
       offsetY = 0;
     } else {
       drawWidth = canvas.width;
-      drawHeight = drawWidth / videoAR;
+      drawHeight = drawWidth / videoAspect;
       offsetX = 0;
-      offsetY = (canvas.height - drawHeight) / 2;
+      offsetY = (canvas.height - drawHeight)/2;
     }
 
     ctx.save();
@@ -181,38 +221,31 @@
       ctx.save();
       const iw = overlayImg.width * overlayState.scale;
       const ih = overlayImg.height * overlayState.scale;
-      const cx = overlayState.x + iw / 2;
-      const cy = overlayState.y + ih / 2;
+      const cx = overlayState.x + iw/2;
+      const cy = overlayState.y + ih/2;
       ctx.translate(cx, cy);
-      ctx.rotate(overlayState.rotation * Math.PI / 180);
-      ctx.translate(-iw / 2, -ih / 2);
+      ctx.rotate(overlayState.rotation * Math.PI/180);
+      ctx.translate(-iw/2, -ih/2);
       ctx.drawImage(overlayImg, 0, 0, iw, ih);
       ctx.restore();
     }
-
     requestAnimationFrame(drawLoop);
   }
 
   overlayImg.onload = () => {
     isOverlayLoaded = true;
-    resizeCanvas();
+    resizeCanvas();  // recalc once overlay loaded to init overlay pos
   };
 
-  // Drag logic for overlay
+  // Overlay drag/touch utils
   let isDragging = false;
 
   function getPointerPos(evt) {
     const rect = canvas.getBoundingClientRect();
     if (evt.touches) {
-      return {
-        x: evt.touches[0].clientX - rect.left,
-        y: evt.touches[0].clientY - rect.top
-      };
+      return { x: evt.touches[0].clientX - rect.left, y: evt.touches[0].clientY - rect.top };
     }
-    return {
-      x: evt.clientX - rect.left,
-      y: evt.clientY - rect.top
-    };
+    return { x: evt.clientX - rect.left, y: evt.clientY - rect.top };
   }
 
   function pointInRotatedRect(px, py, rx, ry, rw, rh, angle) {
@@ -220,7 +253,7 @@
     const cy = ry + rh/2;
     const dx = px - cx;
     const dy = py - cy;
-    const rad = -angle * Math.PI/180;
+    const rad = -angle * Math.PI / 180;
     const rdx = dx * Math.cos(rad) - dy * Math.sin(rad);
     const rdy = dx * Math.sin(rad) + dy * Math.cos(rad);
     return rdx > -rw/2 && rdx < rw/2 && rdy > -rh/2 && rdy < rh/2;
@@ -231,7 +264,7 @@
     const pos = getPointerPos(e);
     const ow = overlayImg.width * overlayState.scale;
     const oh = overlayImg.height * overlayState.scale;
-    if (pointInRotatedRect(pos.x, pos.y, overlayState.x, overlayState.y, ow, oh, overlayState.rotation)) {
+    if (pointInRotatedRect(pos.x, pos.y, overlayState.x, overlayState.y, ow, oh, overlayState.rotation)){
       isDragging = true;
       overlayState.dragStartX = pos.x;
       overlayState.dragStartY = pos.y;
@@ -240,14 +273,12 @@
       canvas.style.cursor = 'grabbing';
     }
   });
-
   window.addEventListener('mousemove', e => {
     if (!isDragging) return;
     const pos = getPointerPos(e);
     overlayState.x = overlayState.lastX + (pos.x - overlayState.dragStartX);
     overlayState.y = overlayState.lastY + (pos.y - overlayState.dragStartY);
   });
-
   window.addEventListener('mouseup', () => {
     if (isDragging) {
       isDragging = false;
@@ -257,11 +288,11 @@
 
   canvas.addEventListener('touchstart', e => {
     if (!isOverlayLoaded) return;
-    if (e.touches.length === 1) {
+    if(e.touches.length === 1){
       const pos = getPointerPos(e);
       const ow = overlayImg.width * overlayState.scale;
       const oh = overlayImg.height * overlayState.scale;
-      if (pointInRotatedRect(pos.x, pos.y, overlayState.x, overlayState.y, ow, oh, overlayState.rotation)) {
+      if(pointInRotatedRect(pos.x, pos.y, overlayState.x, overlayState.y, ow, oh, overlayState.rotation)){
         isDragging = true;
         overlayState.dragStartX = pos.x;
         overlayState.dragStartY = pos.y;
@@ -270,7 +301,7 @@
         canvas.style.cursor = 'grabbing';
       }
     }
-  }, { passive: false });
+  }, {passive:false});
 
   window.addEventListener('touchmove', e => {
     if (!isDragging) return;
@@ -278,25 +309,25 @@
     const pos = getPointerPos(e);
     overlayState.x = overlayState.lastX + (pos.x - overlayState.dragStartX);
     overlayState.y = overlayState.lastY + (pos.y - overlayState.dragStartY);
-  }, { passive: false });
+  }, {passive:false});
 
   window.addEventListener('touchend', () => {
-    if (isDragging) {
+    if(isDragging){
       isDragging = false;
       canvas.style.cursor = 'grab';
     }
   });
 
-  // Switch camera button logic
+  // Button logic
   switchBtn.addEventListener('click', () => {
     usingFrontCamera = !usingFrontCamera;
     startCamera();
   });
 
-  // Capture button opens new tab with image of canvas content (camera + overlay only)
   captureBtn.addEventListener('click', () => {
+    // Capture canvas as image excluding buttons
     canvas.toBlob(blob => {
-      if (!blob) {
+      if(!blob){
         alert('Capture failed: empty image.');
         return;
       }
@@ -305,9 +336,15 @@
     }, 'image/png');
   });
 
-  // Init
+  // Initialization
   resizeCanvas();
   startCamera();
+
+  // Ensure resize always sets canvas size properly
+  window.addEventListener('resize', () => {
+    resizeCanvas();
+  });
 </script>
+
 </body>
 </html>
