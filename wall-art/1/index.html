@@ -3,14 +3,14 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Responsive Camera Preview with Overlay</title>
+<title>Responsive Camera Preview with Overlay and Multi-Touch</title>
 <style>
   html, body {
     margin: 0; padding: 0; height: 100%;
     background: #000;
     user-select: none;
-    overflow-x: hidden; /* horizontal scroll hidden */
-    overflow-y: hidden; /* vertical scroll hidden */
+    overflow-x: hidden; 
+    overflow-y: hidden; 
   }
   body {
     display: flex;
@@ -24,7 +24,6 @@
     touch-action: none;
     box-shadow: 0 0 20px #7b2ff7aa;
     display: block;
-    /* width and height controlled dynamically by JS */
   }
   #controls {
     position: fixed;
@@ -104,7 +103,6 @@
     lastY: 0,
   };
 
-  // Dynamically resize canvas to viewport dimensions per device type (phone/tablet)
   function resizeCanvas() {
     if (!video || video.videoWidth === 0 || video.videoHeight === 0) return;
 
@@ -112,30 +110,23 @@
     const vh = window.innerHeight;
     const videoAspect = video.videoWidth / video.videoHeight;
 
-    // Phone (width <= 768): height = viewport height, width flexible allowing overflow
-    // Tablet and up: width = viewport width, height flexible allowing overflow
-
-    if (vw <= 768) {
-      // Phone view - fix height
+    if (vw <= 768) { // mobile: height fixed, width may overflow invisible
       const ch = vh;
       const cw = ch * videoAspect;
       canvas.width = cw;
       canvas.height = ch;
       canvas.style.width = cw + 'px';
       canvas.style.height = ch + 'px';
+      document.body.style.overflowX = 'hidden';
+      document.body.style.overflowY = 'hidden';
 
-      document.body.style.overflowX = 'hidden';  // no horizontal scroll
-      document.body.style.overflowY = 'hidden';  // no vertical scroll
-
-    } else {
-      // Tablet/Desktop - fix width
+    } else { // tablet/desktop: width fixed, height may overflow invisible
       const cw = vw;
       const ch = cw / videoAspect;
       canvas.width = cw;
       canvas.height = ch;
       canvas.style.width = cw + 'px';
       canvas.style.height = ch + 'px';
-
       document.body.style.overflowX = 'hidden';
       document.body.style.overflowY = 'hidden';
     }
@@ -148,30 +139,28 @@
   }
 
   function startCamera() {
-    if (stream) {
-      stream.getTracks().forEach(track => track.stop());
-    }
+    if (stream) stream.getTracks().forEach(track => track.stop());
     video = document.createElement('video');
     video.autoplay = true;
     video.playsInline = true;
     video.muted = true;
     loadingText.style.display = 'block';
 
-    navigator.mediaDevices.getUserMedia({video: {facingMode: usingFrontCamera ? 'user' : 'environment'}, audio: false})
-    .then(s => {
-      stream = s;
-      video.srcObject = stream;
-      video.onloadedmetadata = () => {
-        video.play();
+    navigator.mediaDevices.getUserMedia({video: {facingMode: usingFrontCamera ? 'user' : 'environment'}, audio:false})
+      .then(s => {
+        stream = s;
+        video.srcObject = stream;
+        video.onloadedmetadata = () => {
+          video.play();
+          loadingText.style.display = 'none';
+          resizeCanvas();
+          requestAnimationFrame(drawLoop);
+        };
+      })
+      .catch(err => {
+        alert('Error accessing camera: ' + err.message);
         loadingText.style.display = 'none';
-        resizeCanvas();
-        requestAnimationFrame(drawLoop);
-      };
-    })
-    .catch(err => {
-      alert('Error accessing camera: ' + err.message);
-      loadingText.style.display = 'none';
-    });
+      });
   }
 
   function drawLoop() {
@@ -179,10 +168,8 @@
       requestAnimationFrame(drawLoop);
       return;
     }
-
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // Calculate video draw sizing fo letterboxing
     const vA = video.videoWidth / video.videoHeight;
     const cA = canvas.width / canvas.height;
 
@@ -191,13 +178,13 @@
     if (cA > vA) {
       drawH = canvas.height;
       drawW = drawH * vA;
-      offsetX = (canvas.width - drawW) / 2;
+      offsetX = (canvas.width - drawW)/2;
       offsetY = 0;
     } else {
       drawW = canvas.width;
       drawH = drawW / vA;
       offsetX = 0;
-      offsetY = (canvas.height - drawH) / 2;
+      offsetY = (canvas.height - drawH)/2;
     }
 
     ctx.save();
@@ -231,12 +218,19 @@
     resizeCanvas();
   };
 
-  // Pointer utilities & drag
+  // --- Multi-touch overlay control ---
+
   let isDragging = false;
+  let initialDistance = 0;
+  let initialAngle = 0;
+  let lastScale = 1;
+  let lastRotation = 0;
+  let isTouchDragging = false;
+  let lastTouchCenter = {x:0, y:0};
 
   function getPointerPos(evt){
     const rect = canvas.getBoundingClientRect();
-    if(evt.touches){
+    if(evt.touches) {
       return {x: evt.touches[0].clientX - rect.left, y: evt.touches[0].clientY - rect.top};
     }
     return {x: evt.clientX - rect.left, y: evt.clientY - rect.top};
@@ -253,6 +247,79 @@
     return rdx > -rw/2 && rdx < rw/2 && rdy > -rh/2 && rdy < rh/2;
   }
 
+  function getDistance(t1,t2){
+    return Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
+  }
+  function getAngle(t1,t2){
+    return Math.atan2(t2.clientY - t1.clientY, t2.clientX - t1.clientX) * 180 / Math.PI;
+  }
+  function getTouchCenter(t1,t2){
+    return {x: (t1.clientX + t2.clientX)/2 - canvas.getBoundingClientRect().left, y: (t1.clientY + t2.clientY)/2 - canvas.getBoundingClientRect().top};
+  }
+
+  canvas.addEventListener('touchstart', e => {
+    if(!isOverlayLoaded) return;
+    if(e.touches.length === 1){
+      const pos = getPointerPos(e);
+      const ow = overlayImg.width * overlayState.scale;
+      const oh = overlayImg.height * overlayState.scale;
+      if(pointInRotatedRect(pos.x, pos.y, overlayState.x, overlayState.y, ow, oh, overlayState.rotation)){
+        isTouchDragging = true;
+        overlayState.dragStartX = pos.x;
+        overlayState.dragStartY = pos.y;
+        overlayState.lastX = overlayState.x;
+        overlayState.lastY = overlayState.y;
+        canvas.style.cursor = 'grabbing';
+      }
+      initialDistance = 0; // reset multi touch vars
+      initialAngle = 0;
+      lastScale = overlayState.scale;
+      lastRotation = overlayState.rotation;
+    } else if(e.touches.length === 2){
+      isTouchDragging = false;
+      initialDistance = getDistance(e.touches[0], e.touches[1]);
+      initialAngle = getAngle(e.touches[0], e.touches[1]);
+      lastScale = overlayState.scale;
+      lastRotation = overlayState.rotation;
+      lastTouchCenter = getTouchCenter(e.touches[0], e.touches[1]);
+    }
+  }, {passive:false});
+
+  canvas.addEventListener('touchmove', e => {
+    if(!isOverlayLoaded) return;
+    e.preventDefault();
+    if(e.touches.length === 1 && isTouchDragging){
+      const pos = getPointerPos(e);
+      overlayState.x = overlayState.lastX + (pos.x - overlayState.dragStartX);
+      overlayState.y = overlayState.lastY + (pos.y - overlayState.dragStartY);
+    } else if(e.touches.length === 2){
+      const currDistance = getDistance(e.touches[0], e.touches[1]);
+      const currAngle = getAngle(e.touches[0], e.touches[1]);
+      const scaleChange = currDistance / initialDistance;
+      overlayState.scale = lastScale * scaleChange;
+
+      const rotationChange = currAngle - initialAngle;
+      overlayState.rotation = lastRotation + rotationChange;
+
+      const currCenter = getTouchCenter(e.touches[0], e.touches[1]);
+      const dx = currCenter.x - lastTouchCenter.x;
+      const dy = currCenter.y - lastTouchCenter.y;
+
+      overlayState.x += dx;
+      overlayState.y += dy;
+
+      lastTouchCenter = currCenter;
+    }
+  }, {passive:false});
+
+  canvas.addEventListener('touchend', e => {
+    if(e.touches.length === 0){
+      isTouchDragging = false;
+      canvas.style.cursor = 'grab';
+    }
+  }, {passive:false});
+
+  // Mouse drag fallback for desktop
   canvas.addEventListener('mousedown', e => {
     if(!isOverlayLoaded) return;
     const pos = getPointerPos(e);
@@ -267,98 +334,58 @@
       canvas.style.cursor = 'grabbing';
     }
   });
-
   window.addEventListener('mousemove', e => {
     if(!isDragging) return;
     const pos = getPointerPos(e);
     overlayState.x = overlayState.lastX + (pos.x - overlayState.dragStartX);
     overlayState.y = overlayState.lastY + (pos.y - overlayState.dragStartY);
   });
-
-  window.addEventListener('mouseup', () => {
+  window.addEventListener('mouseup', e => {
     if(isDragging){
       isDragging = false;
       canvas.style.cursor = 'grab';
     }
   });
 
-  canvas.addEventListener('touchstart', e => {
-    if(!isOverlayLoaded) return;
-    if(e.touches.length === 1){
-      const pos = getPointerPos(e);
-      const ow = overlayImg.width * overlayState.scale;
-      const oh = overlayImg.height * overlayState.scale;
-      if(pointInRotatedRect(pos.x, pos.y, overlayState.x, overlayState.y, ow, oh, overlayState.rotation)){
-        isDragging = true;
-        overlayState.dragStartX = pos.x;
-        overlayState.dragStartY = pos.y;
-        overlayState.lastX = overlayState.x;
-        overlayState.lastY = overlayState.y;
-        canvas.style.cursor = 'grabbing';
-      }
-    }
-  }, {passive:false});
-
-  window.addEventListener('touchmove', e => {
-    if(!isDragging) return;
-    e.preventDefault();
-    const pos = getPointerPos(e);
-    overlayState.x = overlayState.lastX + (pos.x - overlayState.dragStartX);
-    overlayState.y = overlayState.lastY + (pos.y - overlayState.dragStartY);
-  }, {passive:false});
-
-  window.addEventListener('touchend', () => {
-    if(isDragging){
-      isDragging = false;
-      canvas.style.cursor = 'grab';
-    }
-  });
-
-  // Buttons logic
   switchBtn.addEventListener('click', () => {
     usingFrontCamera = !usingFrontCamera;
     startCamera();
   });
 
   captureBtn.addEventListener('click', () => {
-    if (!video || video.videoWidth === 0 || video.videoHeight === 0) {
+    if(!video || video.videoWidth === 0 || video.videoHeight === 0) {
       alert('Video not ready');
       return;
     }
-
-    // Calculate cropping rectangle same as video on canvas (cropping letterbox area)
     const videoAspect = video.videoWidth / video.videoHeight;
     const canvasAspect = canvas.width / canvas.height;
 
     let drawWidth, drawHeight, offsetX, offsetY;
-    if (canvasAspect > videoAspect) {
+    if(canvasAspect > videoAspect){
       drawHeight = canvas.height;
       drawWidth = drawHeight * videoAspect;
-      offsetX = (canvas.width - drawWidth) / 2;
+      offsetX = (canvas.width - drawWidth)/2;
       offsetY = 0;
     } else {
       drawWidth = canvas.width;
       drawHeight = drawWidth / videoAspect;
       offsetX = 0;
-      offsetY = (canvas.height - drawHeight) / 2;
+      offsetY = (canvas.height - drawHeight)/2;
     }
 
-    // Create offscreen canvas with just video area size
     const offscreenCanvas = document.createElement('canvas');
     offscreenCanvas.width = drawWidth;
     offscreenCanvas.height = drawHeight;
     const offctx = offscreenCanvas.getContext('2d');
 
-    // Draw video frame to offscreen canvas, flip if front camera
     offctx.save();
-    if (usingFrontCamera) {
+    if(usingFrontCamera){
       offctx.translate(drawWidth, 0);
-      offctx.scale(-1, 1);
+      offctx.scale(-1,1);
     }
-    offctx.drawImage(video, 0, 0, video.videoWidth, video.videoHeight, 0, 0, drawWidth, drawHeight);
+    offctx.drawImage(video, 0,0, video.videoWidth, video.videoHeight, 0,0, drawWidth, drawHeight);
     offctx.restore();
 
-    // Draw overlay positioned relative to cropped video area
     const overlayX = overlayState.x - offsetX;
     const overlayY = overlayState.y - offsetY;
     const ow = overlayImg.width * overlayState.scale;
@@ -366,14 +393,13 @@
 
     offctx.save();
     offctx.translate(overlayX + ow/2, overlayY + oh/2);
-    offctx.rotate(overlayState.rotation * Math.PI / 180);
+    offctx.rotate(overlayState.rotation * Math.PI/180);
     offctx.translate(-ow/2, -oh/2);
-    offctx.drawImage(overlayImg, 0, 0, ow, oh);
+    offctx.drawImage(overlayImg, 0,0, ow, oh);
     offctx.restore();
 
-    // Export offscreen canvas snapshot
     offscreenCanvas.toBlob(blob => {
-      if (!blob) {
+      if(!blob){
         alert('Capture failed: empty image.');
         return;
       }
@@ -383,10 +409,13 @@
   });
 
   // Initialize
-  window.addEventListener('resize', resizeCanvas);
+  window.addEventListener('resize', () => {
+    if(video && video.videoWidth) resizeCanvas();
+  });
+
   resizeCanvas();
   startCamera();
-</script>
 
+</script>
 </body>
 </html>
