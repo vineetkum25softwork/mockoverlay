@@ -9,8 +9,8 @@
     margin: 0; padding: 0; height: 100%;
     background: #000;
     user-select: none;
-    overflow-x: hidden; /* default no horizontal scroll */
-    overflow-y: hidden; /* will toggle in JS */
+    overflow-x: hidden; /* horizontal scroll hidden */
+    overflow-y: hidden; /* vertical scroll hidden */
   }
   body {
     display: flex;
@@ -24,7 +24,7 @@
     touch-action: none;
     box-shadow: 0 0 20px #7b2ff7aa;
     display: block;
-    /* width and height controlled by JS */
+    /* width and height controlled dynamically by JS */
   }
   #controls {
     position: fixed;
@@ -90,10 +90,9 @@
   let usingFrontCamera = true;
   let video = null;
   let overlayImg = new Image();
-  overlayImg.src = 'asset.png'; // overlay PNG
+  overlayImg.src = 'asset.png'; // overlay PNG path
   let isOverlayLoaded = false;
 
-  // Overlay state for position, scale, rotation, drag data
   const overlayState = {
     x: null,
     y: null,
@@ -105,50 +104,42 @@
     lastY: 0,
   };
 
-  // Device width breakpoint to separate mobile/tablet+desktop (can adjust as needed)
-  const mobileMaxWidth = 768;
-
-  // Resize canvas and control body overflow per device width and video aspect ratio
+  // Dynamically resize canvas to viewport dimensions per device type (phone/tablet)
   function resizeCanvas() {
     if (!video || video.videoWidth === 0 || video.videoHeight === 0) return;
 
-    const viewportWidth = window.innerWidth;
-    const viewportHeight = window.innerHeight;
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
     const videoAspect = video.videoWidth / video.videoHeight;
 
-    // Mobile: constrain height to viewport height, width can overflow horizontally (hidden scroll)
-    if (viewportWidth <= mobileMaxWidth) {
-      // Height fixed to viewport height
-      const canvasHeight = viewportHeight;
-      const canvasWidth = canvasHeight * videoAspect;
+    // Phone (width <= 768): height = viewport height, width flexible allowing overflow
+    // Tablet and up: width = viewport width, height flexible allowing overflow
 
-      canvas.style.height = canvasHeight + 'px';
-      canvas.style.width = canvasWidth + 'px';
+    if (vw <= 768) {
+      // Phone view - fix height
+      const ch = vh;
+      const cw = ch * videoAspect;
+      canvas.width = cw;
+      canvas.height = ch;
+      canvas.style.width = cw + 'px';
+      canvas.style.height = ch + 'px';
 
-      canvas.width = canvasWidth;
-      canvas.height = canvasHeight;
-
-      // prevent scroll on y, allow overflow-x hidden
-      document.body.style.overflowY = 'hidden';
-      document.body.style.overflowX = 'hidden';
+      document.body.style.overflowX = 'hidden';  // no horizontal scroll
+      document.body.style.overflowY = 'hidden';  // no vertical scroll
 
     } else {
-      // Tablet/Desktop: constrain width to viewport width, height can overflow vertically (hidden scroll)
-      const canvasWidth = viewportWidth;
-      const canvasHeight = canvasWidth / videoAspect;
+      // Tablet/Desktop - fix width
+      const cw = vw;
+      const ch = cw / videoAspect;
+      canvas.width = cw;
+      canvas.height = ch;
+      canvas.style.width = cw + 'px';
+      canvas.style.height = ch + 'px';
 
-      canvas.style.width = canvasWidth + 'px';
-      canvas.style.height = canvasHeight + 'px';
-
-      canvas.width = canvasWidth;
-      canvas.height = canvasHeight;
-
-      // prevent scroll on x, allow overflow-y hidden
       document.body.style.overflowX = 'hidden';
       document.body.style.overflowY = 'hidden';
     }
 
-    // Initialize overlay position/scaling on first resize or if null
     if (overlayState.x === null || overlayState.y === null) {
       overlayState.scale = (canvas.width * 0.7) / overlayImg.width;
       overlayState.x = canvas.width * 0.15;
@@ -166,21 +157,21 @@
     video.muted = true;
     loadingText.style.display = 'block';
 
-    navigator.mediaDevices.getUserMedia({video: {facingMode: usingFrontCamera ? "user" : "environment"}, audio:false})
-      .then(s => {
-        stream = s;
-        video.srcObject = stream;
-        video.onloadedmetadata = () => {
-          video.play();
-          loadingText.style.display = 'none';
-          resizeCanvas();
-          requestAnimationFrame(drawLoop);
-        };
-      })
-      .catch(err => {
-        alert("Error accessing camera: " + err.message);
+    navigator.mediaDevices.getUserMedia({video: {facingMode: usingFrontCamera ? 'user' : 'environment'}, audio: false})
+    .then(s => {
+      stream = s;
+      video.srcObject = stream;
+      video.onloadedmetadata = () => {
+        video.play();
         loadingText.style.display = 'none';
-      });
+        resizeCanvas();
+        requestAnimationFrame(drawLoop);
+      };
+    })
+    .catch(err => {
+      alert('Error accessing camera: ' + err.message);
+      loadingText.style.display = 'none';
+    });
   }
 
   function drawLoop() {
@@ -188,32 +179,34 @@
       requestAnimationFrame(drawLoop);
       return;
     }
+
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // Calculate letterbox style draw area for video to preserve aspect ratio inside canvas
-    const videoAspect = video.videoWidth/video.videoHeight;
-    const canvasAspect = canvas.width/canvas.height;
-    let drawWidth, drawHeight, offsetX, offsetY;
+    // Calculate video draw sizing fo letterboxing
+    const vA = video.videoWidth / video.videoHeight;
+    const cA = canvas.width / canvas.height;
 
-    if (canvasAspect > videoAspect) {
-      drawHeight = canvas.height;
-      drawWidth = drawHeight * videoAspect;
-      offsetX = (canvas.width - drawWidth)/2;
+    let drawW, drawH, offsetX, offsetY;
+
+    if (cA > vA) {
+      drawH = canvas.height;
+      drawW = drawH * vA;
+      offsetX = (canvas.width - drawW) / 2;
       offsetY = 0;
     } else {
-      drawWidth = canvas.width;
-      drawHeight = drawWidth / videoAspect;
+      drawW = canvas.width;
+      drawH = drawW / vA;
       offsetX = 0;
-      offsetY = (canvas.height - drawHeight)/2;
+      offsetY = (canvas.height - drawH) / 2;
     }
 
     ctx.save();
     if (usingFrontCamera) {
       ctx.translate(canvas.width, 0);
       ctx.scale(-1, 1);
-      ctx.drawImage(video, offsetX, offsetY, drawWidth, drawHeight);
+      ctx.drawImage(video, offsetX, offsetY, drawW, drawH);
     } else {
-      ctx.drawImage(video, offsetX, offsetY, drawWidth, drawHeight);
+      ctx.drawImage(video, offsetX, offsetY, drawW, drawH);
     }
     ctx.restore();
 
@@ -224,47 +217,48 @@
       const cx = overlayState.x + iw/2;
       const cy = overlayState.y + ih/2;
       ctx.translate(cx, cy);
-      ctx.rotate(overlayState.rotation * Math.PI/180);
+      ctx.rotate(overlayState.rotation * Math.PI / 180);
       ctx.translate(-iw/2, -ih/2);
       ctx.drawImage(overlayImg, 0, 0, iw, ih);
       ctx.restore();
     }
+
     requestAnimationFrame(drawLoop);
   }
 
   overlayImg.onload = () => {
     isOverlayLoaded = true;
-    resizeCanvas();  // recalc once overlay loaded to init overlay pos
+    resizeCanvas();
   };
 
-  // Overlay drag/touch utils
+  // Pointer utilities & drag
   let isDragging = false;
 
-  function getPointerPos(evt) {
+  function getPointerPos(evt){
     const rect = canvas.getBoundingClientRect();
-    if (evt.touches) {
-      return { x: evt.touches[0].clientX - rect.left, y: evt.touches[0].clientY - rect.top };
+    if(evt.touches){
+      return {x: evt.touches[0].clientX - rect.left, y: evt.touches[0].clientY - rect.top};
     }
-    return { x: evt.clientX - rect.left, y: evt.clientY - rect.top };
+    return {x: evt.clientX - rect.left, y: evt.clientY - rect.top};
   }
 
-  function pointInRotatedRect(px, py, rx, ry, rw, rh, angle) {
+  function pointInRotatedRect(px, py, rx, ry, rw, rh, angle){
     const cx = rx + rw/2;
     const cy = ry + rh/2;
     const dx = px - cx;
     const dy = py - cy;
-    const rad = -angle * Math.PI / 180;
+    const rad = -angle * Math.PI/180;
     const rdx = dx * Math.cos(rad) - dy * Math.sin(rad);
     const rdy = dx * Math.sin(rad) + dy * Math.cos(rad);
     return rdx > -rw/2 && rdx < rw/2 && rdy > -rh/2 && rdy < rh/2;
   }
 
   canvas.addEventListener('mousedown', e => {
-    if (!isOverlayLoaded) return;
+    if(!isOverlayLoaded) return;
     const pos = getPointerPos(e);
     const ow = overlayImg.width * overlayState.scale;
     const oh = overlayImg.height * overlayState.scale;
-    if (pointInRotatedRect(pos.x, pos.y, overlayState.x, overlayState.y, ow, oh, overlayState.rotation)){
+    if(pointInRotatedRect(pos.x, pos.y, overlayState.x, overlayState.y, ow, oh, overlayState.rotation)){
       isDragging = true;
       overlayState.dragStartX = pos.x;
       overlayState.dragStartY = pos.y;
@@ -273,21 +267,23 @@
       canvas.style.cursor = 'grabbing';
     }
   });
+
   window.addEventListener('mousemove', e => {
-    if (!isDragging) return;
+    if(!isDragging) return;
     const pos = getPointerPos(e);
     overlayState.x = overlayState.lastX + (pos.x - overlayState.dragStartX);
     overlayState.y = overlayState.lastY + (pos.y - overlayState.dragStartY);
   });
+
   window.addEventListener('mouseup', () => {
-    if (isDragging) {
+    if(isDragging){
       isDragging = false;
       canvas.style.cursor = 'grab';
     }
   });
 
   canvas.addEventListener('touchstart', e => {
-    if (!isOverlayLoaded) return;
+    if(!isOverlayLoaded) return;
     if(e.touches.length === 1){
       const pos = getPointerPos(e);
       const ow = overlayImg.width * overlayState.scale;
@@ -304,7 +300,7 @@
   }, {passive:false});
 
   window.addEventListener('touchmove', e => {
-    if (!isDragging) return;
+    if(!isDragging) return;
     e.preventDefault();
     const pos = getPointerPos(e);
     overlayState.x = overlayState.lastX + (pos.x - overlayState.dragStartX);
@@ -318,16 +314,66 @@
     }
   });
 
-  // Button logic
+  // Buttons logic
   switchBtn.addEventListener('click', () => {
     usingFrontCamera = !usingFrontCamera;
     startCamera();
   });
 
   captureBtn.addEventListener('click', () => {
-    // Capture canvas as image excluding buttons
-    canvas.toBlob(blob => {
-      if(!blob){
+    if (!video || video.videoWidth === 0 || video.videoHeight === 0) {
+      alert('Video not ready');
+      return;
+    }
+
+    // Calculate cropping rectangle same as video on canvas (cropping letterbox area)
+    const videoAspect = video.videoWidth / video.videoHeight;
+    const canvasAspect = canvas.width / canvas.height;
+
+    let drawWidth, drawHeight, offsetX, offsetY;
+    if (canvasAspect > videoAspect) {
+      drawHeight = canvas.height;
+      drawWidth = drawHeight * videoAspect;
+      offsetX = (canvas.width - drawWidth) / 2;
+      offsetY = 0;
+    } else {
+      drawWidth = canvas.width;
+      drawHeight = drawWidth / videoAspect;
+      offsetX = 0;
+      offsetY = (canvas.height - drawHeight) / 2;
+    }
+
+    // Create offscreen canvas with just video area size
+    const offscreenCanvas = document.createElement('canvas');
+    offscreenCanvas.width = drawWidth;
+    offscreenCanvas.height = drawHeight;
+    const offctx = offscreenCanvas.getContext('2d');
+
+    // Draw video frame to offscreen canvas, flip if front camera
+    offctx.save();
+    if (usingFrontCamera) {
+      offctx.translate(drawWidth, 0);
+      offctx.scale(-1, 1);
+    }
+    offctx.drawImage(video, 0, 0, video.videoWidth, video.videoHeight, 0, 0, drawWidth, drawHeight);
+    offctx.restore();
+
+    // Draw overlay positioned relative to cropped video area
+    const overlayX = overlayState.x - offsetX;
+    const overlayY = overlayState.y - offsetY;
+    const ow = overlayImg.width * overlayState.scale;
+    const oh = overlayImg.height * overlayState.scale;
+
+    offctx.save();
+    offctx.translate(overlayX + ow/2, overlayY + oh/2);
+    offctx.rotate(overlayState.rotation * Math.PI / 180);
+    offctx.translate(-ow/2, -oh/2);
+    offctx.drawImage(overlayImg, 0, 0, ow, oh);
+    offctx.restore();
+
+    // Export offscreen canvas snapshot
+    offscreenCanvas.toBlob(blob => {
+      if (!blob) {
         alert('Capture failed: empty image.');
         return;
       }
@@ -336,14 +382,10 @@
     }, 'image/png');
   });
 
-  // Initialization
+  // Initialize
+  window.addEventListener('resize', resizeCanvas);
   resizeCanvas();
   startCamera();
-
-  // Ensure resize always sets canvas size properly
-  window.addEventListener('resize', () => {
-    resizeCanvas();
-  });
 </script>
 
 </body>
