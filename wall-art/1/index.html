@@ -1,265 +1,310 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-<title>Mobile Camera Preview with Overlay</title>
-<style>
-  body, html {
-    margin: 0; padding: 0; height: 100vh; width: 100vw;
-    font-family: Arial, sans-serif;
-    background: #000;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: flex-start;
-    user-select: none;
-    font-size: 0; /* prevent unexpected gap due to inline-block elements */
-  }
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Adjustable Camera Preview with Overlay</title>
+  <style>
+    /* Reset and base */
+    body, html {
+      margin: 0; padding: 0; height: 100vh; width: 100vw;
+      background: #000;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      user-select: none;
+      overflow: hidden;
+      color: white;
+    }
 
-  #previewCanvas {
-    display: block;
-    width: 96vw;
-    max-width: 700px;
-    aspect-ratio: 700 / 1024;
-    /* The height is determined by aspect ratio and width, so height will adjust accordingly */
-    height: auto;
-  }
+    /* Customize width and height here for your canvas */
+    #previewCanvas {
+      display: block;
+      width: 360px;          /* Change width here */
+      height: 640px;         /* Change height here */
+      border-radius: 20px;
+      background: #222;
+      cursor: grab;
+      touch-action: none;
+      box-shadow: 0 0 20px #7b2ff7aa;
+    }
 
-  #controls {
-    margin-top: 15px;
-    display: flex;
-    gap: 15px;
-    width: 95vw;
-    max-width: 700px;
-    justify-content: space-between;
-    padding: 0 10px;
-  }
+    #controls {
+      margin-top: 15px;
+      display: flex;
+      gap: 15px;
+      width: 360px;          /* Match canvas width */
+      justify-content: space-between;
+    }
 
-  button {
-    flex: 1;
-    padding: 14px 0;
-    border-radius: 10px;
-    border: none;
-    font-weight: bold;
-    color: #fff;
-    background: linear-gradient(90deg, #5E60CE, #3A0CA3);
-    cursor: pointer;
-    box-shadow: 0 4px 12px rgba(58,12,163,0.7);
-    font-size: 18px;
-    user-select: none;
-  }
+    button {
+      flex: 1;
+      padding: 12px 0;
+      border-radius: 10px;
+      border: none;
+      font-weight: bold;
+      color: #fff;
+      background: linear-gradient(90deg, #5E60CE, #3A0CA3);
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(58,12,163,0.7);
+      font-size: 16px;
+      user-select: none;
+      margin: 0 5px;
+      transition: background 0.3s ease;
+    }
 
-  button:hover {
-    background: linear-gradient(90deg, #7209b7, #4361ee);
-  }
+    button:hover {
+      background: linear-gradient(90deg, #7209b7, #4361ee);
+    }
 
-  #loadingText {
-    position: absolute;
-    top: 20px;
-    left: 20px;
-    color: #fff;
-    font-size: 16px;
-    background: rgba(0,0,0,0.6);
-    padding: 6px 12px;
-    border-radius: 8px;
-    display: none;
-    z-index: 10;
-  }
-</style>
+    #loadingText {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      color: #fff;
+      font-size: 16px;
+      background: rgba(0,0,0,0.6);
+      padding: 6px 12px;
+      border-radius: 8px;
+      display: none;
+      z-index: 10;
+    }
+  </style>
 </head>
 <body>
 <div id="loadingText">Loading camera...</div>
 <canvas id="previewCanvas" aria-label="Camera preview with overlay"></canvas>
+
 <div id="controls">
   <button id="switchCameraBtn" aria-label="Switch Camera">Reverse Camera</button>
   <button id="captureBtn" aria-label="Capture Picture">Capture</button>
 </div>
 
 <script>
-const canvas = document.getElementById('previewCanvas');
-const ctx = canvas.getContext('2d');
-const switchBtn = document.getElementById('switchCameraBtn');
-const captureBtn = document.getElementById('captureBtn');
-const loadingText = document.getElementById('loadingText');
+  const canvas = document.getElementById('previewCanvas');
+  const ctx = canvas.getContext('2d');
+  const switchBtn = document.getElementById('switchCameraBtn');
+  const captureBtn = document.getElementById('captureBtn');
+  const loadingText = document.getElementById('loadingText');
 
-let stream = null;
-let usingFrontCamera = true;
-let video = null;
-let overlayImg = new Image();
-overlayImg.src = 'asset.png'; // default overlay image
-let isOverlayLoaded = false;
+  let stream = null;
+  let usingFrontCamera = true;
+  let video = null;
+  let overlayImg = new Image();
+  overlayImg.src = 'asset.png'; // default overlay image
+  let isOverlayLoaded = false;
 
-let overlayState = {
-  x: null, y: null,
-  scale: 1,
-  rotation: 0,
-  dragging: false,
-  dragStartX: 0,
-  dragStartY: 0,
-  lastX: 0,
-  lastY: 0,
-};
-
-// Set canvas size based on aspect ratio for mobile fit
-function setCanvasSize() {
-  const aspectRatio = 700 / 1024;
-  const width = Math.min(window.innerWidth * 0.95, 700);
-  const height = width / aspectRatio;
-  canvas.width = width;
-  canvas.height = height;
-}
-setCanvasSize();
-
-window.addEventListener('resize', setCanvasSize);
-
-function startCamera() {
-  if (stream) {
-    stream.getTracks().forEach(track => track.stop());
-  }
-  video = document.createElement('video');
-  video.autoplay = true;
-  video.playsInline = true;
-  video.muted = true;
-  loadingText.style.display = 'block';
-
-  const constraints = {
-    video: { facingMode: usingFrontCamera ? 'user' : 'environment' },
-    audio: false
+  // Overlay position/scale/rotation state
+  let overlayState = {
+    x: null, y: null,
+    scale: 1,
+    rotation: 0,
+    dragStartX: 0,
+    dragStartY: 0,
+    lastX: 0,
+    lastY: 0,
   };
 
-  navigator.mediaDevices.getUserMedia(constraints).then(_stream => {
-    stream = _stream;
-    video.srcObject = stream;
-    video.onloadedmetadata = () => {
-      video.play();
-      loadingText.style.display = 'none';
+  function setCanvasSize() {
+    const rect = canvas.getBoundingClientRect();
+    canvas.width = rect.width;
+    canvas.height = rect.height;
+    if (overlayState.x === null || overlayState.y === null) {
+      overlayState.scale = (canvas.width * 0.7) / overlayImg.width;
+      overlayState.x = canvas.width * 0.15;
+      overlayState.y = canvas.height * 0.2;
+    }
+  }
+  window.addEventListener('resize', setCanvasSize);
+
+  function startCamera() {
+    if (stream) {
+      stream.getTracks().forEach(track => track.stop());
+    }
+    video = document.createElement('video');
+    video.autoplay = true;
+    video.playsInline = true;
+    video.muted = true;
+    loadingText.style.display = 'block';
+
+    const constraints = { video: { facingMode: usingFrontCamera ? 'user' : 'environment' }, audio: false };
+    navigator.mediaDevices.getUserMedia(constraints)
+      .then(_stream => {
+        stream = _stream;
+        video.srcObject = stream;
+        video.onloadedmetadata = () => {
+          video.play();
+          loadingText.style.display = 'none';
+          requestAnimationFrame(drawLoop);
+        };
+      })
+      .catch(err => {
+        alert('Error accessing camera: ' + err.message);
+        loadingText.style.display = 'none';
+      });
+  }
+
+  function drawLoop() {
+    if (!video || video.readyState !== 4) {
       requestAnimationFrame(drawLoop);
-    };
-  }).catch(err => {
-    alert('Error accessing camera: ' + err.message);
-    loadingText.style.display = 'none';
-  });
-}
+      return;
+    }
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-// Draw loop to render video + overlay
-function drawLoop() {
-  if (!video || video.readyState !== 4) {
-    requestAnimationFrame(drawLoop);
-    return;
-  }
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
+    // Calculate video aspect ratio and canvas aspect ratio for letterboxing
+    const videoAspectRatio = video.videoWidth / video.videoHeight;
+    const canvasAspectRatio = canvas.width / canvas.height;
 
-  // Calculate aspect ratio fit
-  const videoW = video.videoWidth;
-  const videoH = video.videoHeight;
-  const aspectRatio = videoW / videoH;
-  const cW = canvas.width;
-  const cH = canvas.height;
-  let drawW, drawH, offsetX, offsetY;
-  if (cW / cH > aspectRatio) {
-    drawH = cH;
-    drawW = drawH * aspectRatio;
-    offsetX = (cW - drawW) / 2;
-    offsetY = 0;
-  } else {
-    drawW = cW;
-    drawH = drawW / aspectRatio;
-    offsetX = 0;
-    offsetY = (cH - drawH) / 2;
-  }
+    let drawWidth, drawHeight, offsetX, offsetY;
+    if (canvasAspectRatio > videoAspectRatio) {
+      drawHeight = canvas.height;
+      drawWidth = drawHeight * videoAspectRatio;
+      offsetX = (canvas.width - drawWidth) / 2;
+      offsetY = 0;
+    } else {
+      drawWidth = canvas.width;
+      drawHeight = drawWidth / videoAspectRatio;
+      offsetX = 0;
+      offsetY = (canvas.height - drawHeight) / 2;
+    }
 
-  ctx.save();
-  if (usingFrontCamera) {
-    ctx.translate(cW, 0);
-    ctx.scale(-1, 1);
-    ctx.drawImage(video, offsetX, offsetY, drawW, drawH);
-  } else {
-    ctx.drawImage(video, offsetX, offsetY, drawW, drawH);
-  }
-  ctx.restore();
-
-  if (isOverlayLoaded) {
+    // Draw mirrored video if using front camera
     ctx.save();
-    const iw = overlayImg.width * overlayState.scale;
-    const ih = overlayImg.height * overlayState.scale;
-    const cx = overlayState.x + iw/2;
-    const cy = overlayState.y + ih/2;
-    ctx.translate(cx, cy);
-    ctx.rotate((overlayState.rotation * Math.PI) / 180);
-    ctx.translate(-iw/2, -ih/2);
-    ctx.drawImage(overlayImg, 0, 0, iw, ih);
+    if (usingFrontCamera) {
+      ctx.translate(canvas.width, 0);
+      ctx.scale(-1, 1);
+      ctx.drawImage(video, offsetX, offsetY, drawWidth, drawHeight);
+    } else {
+      ctx.drawImage(video, offsetX, offsetY, drawWidth, drawHeight);
+    }
     ctx.restore();
+
+    // Draw overlay
+    if (isOverlayLoaded) {
+      ctx.save();
+      const iw = overlayImg.width * overlayState.scale;
+      const ih = overlayImg.height * overlayState.scale;
+      const cx = overlayState.x + iw / 2;
+      const cy = overlayState.y + ih / 2;
+      ctx.translate(cx, cy);
+      ctx.rotate(overlayState.rotation * Math.PI / 180);
+      ctx.translate(-iw / 2, -ih / 2);
+      ctx.drawImage(overlayImg, 0, 0, iw, ih);
+      ctx.restore();
+    }
+
+    requestAnimationFrame(drawLoop);
   }
 
-  requestAnimationFrame(drawLoop);
-}
+  overlayImg.onload = () => {
+    isOverlayLoaded = true;
+    setCanvasSize();
+  };
 
-// Load overlay image
-overlayImg.onload = () => {
-  isOverlayLoaded = true;
-  overlayState.scale = (canvas.width * 0.7) / overlayImg.width;
-  overlayState.x = canvas.width * 0.15;
-  overlayState.y = canvas.height * 0.2;
-};
+  // Drag utilities
+  let isDragging = false;
 
-// Drag & touch handlers...
-let isDragging = false;
-function getMousePos(evt) {
-  const rect = canvas.getBoundingClientRect();
-  return { x: evt.clientX - rect.left, y: evt.clientY - rect.top };
-}
-function pointInRotatedRect(px, py, rx, ry, rw, rh, angle) {
-  const cx = rx + rw/2, cy = ry + rh/2;
-  const dx = px - cx, dy = py - cy;
-  const rad = -angle * Math.PI/180;
-  const rdx = dx*Math.cos(rad) - dy*Math.sin(rad);
-  const rdy = dx*Math.sin(rad) + dy*Math.cos(rad);
-  return rdx > -rw/2 && rdx < rw/2 && rdy > -rh/2 && rdy < rh/2;
-}
-
-canvas.addEventListener('mousedown', (e) => {
-  if (!isOverlayLoaded) return;
-  const pos = getMousePos(e);
-  const ow = overlayImg.width * overlayState.scale;
-  const oh = overlayImg.height * overlayState.scale;
-  if (pointInRotatedRect(pos.x, pos.y, overlayState.x, overlayState.y, ow, oh, overlayState.rotation)) {
-    isDragging = true;
-    overlayState.dragStartX = pos.x;
-    overlayState.dragStartY = pos.y;
-    overlayState.lastX = overlayState.x;
-    overlayState.lastY = overlayState.y;
-    canvas.style.cursor = 'grabbing';
+  function getPointerPos(evt) {
+    const rect = canvas.getBoundingClientRect();
+    if (evt.touches) {
+      return { x: evt.touches[0].clientX - rect.left, y: evt.touches[0].clientY - rect.top };
+    } else {
+      return { x: evt.clientX - rect.left, y: evt.clientY - rect.top };
+    }
   }
-});
-window.addEventListener('mousemove', (e) => {
-  if (isDragging) {
-    const pos = getMousePos(e);
+
+  function pointInRotatedRect(px, py, rx, ry, rw, rh, angle) {
+    const cx = rx + rw / 2;
+    const cy = ry + rh / 2;
+    const dx = px - cx;
+    const dy = py - cy;
+    const rad = -angle * Math.PI / 180;
+    const rdx = dx * Math.cos(rad) - dy * Math.sin(rad);
+    const rdy = dx * Math.sin(rad) + dy * Math.cos(rad);
+    return rdx > -rw / 2 && rdx < rw / 2 && rdy > -rh / 2 && rdy < rh / 2;
+  }
+
+  canvas.addEventListener('mousedown', e => {
+    if (!isOverlayLoaded) return;
+    const pos = getPointerPos(e);
+    const ow = overlayImg.width * overlayState.scale;
+    const oh = overlayImg.height * overlayState.scale;
+    if (pointInRotatedRect(pos.x, pos.y, overlayState.x, overlayState.y, ow, oh, overlayState.rotation)) {
+      isDragging = true;
+      overlayState.dragStartX = pos.x;
+      overlayState.dragStartY = pos.y;
+      overlayState.lastX = overlayState.x;
+      overlayState.lastY = overlayState.y;
+      canvas.style.cursor = 'grabbing';
+    }
+  });
+
+  window.addEventListener('mousemove', e => {
+    if (!isDragging) return;
+    const pos = getPointerPos(e);
     overlayState.x = overlayState.lastX + (pos.x - overlayState.dragStartX);
     overlayState.y = overlayState.lastY + (pos.y - overlayState.dragStartY);
-  }
-});
-window.addEventListener('mouseup', () => {
-  if (isDragging) {
-    isDragging = false;
-    canvas.style.cursor = 'grab';
-  }
-});
-// Touch similar...
-// ... (rest of code remains same)
+  });
 
-document.getElementById('switchCameraBtn').onclick = () => { usingFrontCamera = !usingFrontCamera; startCamera(); };
-document.getElementById('captureBtn').onclick = () => {
-  canvas.toBlob(blob => {
-    if (!blob) { alert('Capture failed: empty image.'); return; }
-    const url = URL.createObjectURL(blob);
-    window.open(url, '_blank');
-  }, 'image/png');
-};
+  window.addEventListener('mouseup', () => {
+    if (isDragging) {
+      isDragging = false;
+      canvas.style.cursor = 'grab';
+    }
+  });
 
-// initiate camera
-startCamera();
+  canvas.addEventListener('touchstart', e => {
+    if (!isOverlayLoaded) return;
+    if (e.touches.length === 1) {
+      const pos = getPointerPos(e);
+      const ow = overlayImg.width * overlayState.scale;
+      const oh = overlayImg.height * overlayState.scale;
+      if (pointInRotatedRect(pos.x, pos.y, overlayState.x, overlayState.y, ow, oh, overlayState.rotation)) {
+        isDragging = true;
+        overlayState.dragStartX = pos.x;
+        overlayState.dragStartY = pos.y;
+        overlayState.lastX = overlayState.x;
+        overlayState.lastY = overlayState.y;
+        canvas.style.cursor = 'grabbing';
+      }
+    }
+  }, { passive: false });
+
+  window.addEventListener('touchmove', e => {
+    if (!isDragging) return;
+    e.preventDefault();
+    const pos = getPointerPos(e);
+    overlayState.x = overlayState.lastX + (pos.x - overlayState.dragStartX);
+    overlayState.y = overlayState.lastY + (pos.y - overlayState.dragStartY);
+  }, { passive: false });
+
+  window.addEventListener('touchend', () => {
+    if (isDragging) {
+      isDragging = false;
+      canvas.style.cursor = 'grab';
+    }
+  });
+
+  switchBtn.addEventListener('click', () => {
+    usingFrontCamera = !usingFrontCamera;
+    startCamera();
+  });
+
+  captureBtn.addEventListener('click', () => {
+    canvas.toBlob(blob => {
+      if (!blob) {
+        alert('Capture failed: empty image.');
+        return;
+      }
+      const url = URL.createObjectURL(blob);
+      window.open(url, '_blank');
+    }, 'image/png');
+  });
+
+  // Start everything
+  setCanvasSize();
+  startCamera();
 </script>
 </body>
 </html>
-
