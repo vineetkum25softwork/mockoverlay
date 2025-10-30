@@ -86,6 +86,7 @@
       overflow: hidden;
       position: relative;
       margin: 50px auto;
+      margin-top: 8px;
       box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
       background: #000;
       transition: transform 3s ease-in-out;
@@ -126,10 +127,65 @@
     }
 
 
+    #leftColumn {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      color: black;
+      padding: 20px;
+    }
+
+    .highlighted-text {
+      font-weight: 900;
+      font-size: 1.8rem;
+      color: #7209b7;
+      /* deep violet */
+      background: linear-gradient(90deg, #f72585, #7209b7);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 15px;
+      margin-top: 0.4in;
+    }
+
+    .light-text {
+      font-weight: 500;
+      font-size: 1rem;
+      color: #181818;
+      /* lighter grey */
+      margin-bottom: 0.25in;
+      margin-top: 0.3in;
+    }
+
+    .qr-code {
+      width: 180px;
+      height: 180px;
+      border-radius: 12px;
+      box-shadow: 0 4px 15px rgba(245, 245, 245, 0.3);
+      /* pink shadow */
+      margin-bottom: 20px;
+    }
+
+    .link-text {
+      font-size: 18px;
+      font-weight: 600;
+      color: #0e46ad;
+      margin-bottom: 8px;
+      margin-top: 10px;
+    }
+
+    .link-box {
+      width: 100%;
+      max-width: 450px;
+      padding: 10px 15px;
+      font-size: 1rem;
+      border: 2px solid #b475f0;
+      border-radius: 8px;
+      background-color: #f9f9f9;
+    }
+
+
     /* Desktop overrides */
     @media (min-width: 1025px) {
       body {
-        background: #f9f9f9;
+        background: #f6f4f7;
         overflow-x: auto;
         overflow-y: auto;
       }
@@ -164,10 +220,16 @@
 
 
   <div class="container mt-3" id="desktopAlert">
-    <div class="row" style="border:1px solid #ddd; padding:15px; border-radius:8px; background:#fff;">
+    <div class="row" style="padding:15px; background:#fff;">
       <!-- Left Column: QR code instructions -->
-      <div class="col-6 text-center">
-        <h2>For better experience, open this in phone or tablet</h2>
+      <div class="col-6 text-center" id="leftColumn">
+        <h2 class="highlighted-text">For better experience, open it in phone or tablet</h2>
+        <p class="light-text">Scan QR code to open this in phone or tablet</p>
+        <img
+          src="https://previews.123rf.com/images/foxindustry/foxindustry1310/foxindustry131000007/23317483-sample-qr-code-ready-to-scan-with-smart-phone.jpg"
+          alt="Scan QR Code" class="qr-code" />
+        <p class="link-text">or you can use this link</p>
+        <input type="text" readonly value="https://example.com/your-link" class="link-box" />
       </div>
       <!-- Right Column: Phone Demo -->
       <div class="col-6">
@@ -554,30 +616,13 @@
     });
 
 
-    (function () {
-      const bedroomSrc = "https://www.shutterstock.com/image-illustration/interior-modern-bedroom-beige-walls-600nw-2387252829.jpg";
-      const wallArtSrc = "https://png.pngtree.com/png-clipart/20240514/original/pngtree-abstract-aesthetic-boho-botanical-with-shapes-minimal-design-boho-wall-art-png-image_15093543.png";
-
-      const bedroomImage = document.getElementById('bedroomImage');
-      const wallArtDiv = document.getElementById('wallArt');
-
-      if (bedroomImage) {
-        bedroomImage.src = bedroomSrc;
-      }
-      if (wallArtDiv) {
-        wallArtDiv.style.backgroundImage = `url(${wallArtSrc})`;
-      }
-
-      // Your optional interaction or animations can go here
-      // For example, toggling images, animations, or effects.
-    })();
 
 
 
     //Phone Demo Script Here 
 
     const bedroomSrc = "https://www.shutterstock.com/image-illustration/interior-modern-bedroom-beige-walls-600nw-2387252829.jpg";
-    const wallArtSrc = "asset.png";
+    const wallArtSrc = overlayImg.src;
 
     const bedroomImage = document.getElementById('bedroomImage');
     const wallArtDiv = document.getElementById('wallArt');
