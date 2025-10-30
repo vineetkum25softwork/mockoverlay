@@ -689,7 +689,7 @@
         const newDistance = getDistance(ongoingTouches[0], ongoingTouches[1]);
         const newAngle = getAngle(ongoingTouches[0], ongoingTouches[1]);
 
-        const MIN_SCALE = 0.05;  // minimum zoom out scale (can be lower if needed)
+        const MIN_SCALE = 0.01;  // minimum zoom out scale (can be lower if needed)
         const MAX_SCALE = 10;    // max zoom in scale
 
         const scaleChange = newDistance / lastDistance;
@@ -735,3 +735,4 @@
 </body>
 
 </html>
+
