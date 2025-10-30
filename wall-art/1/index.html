@@ -74,7 +74,7 @@
 <canvas id="previewCanvas" aria-label="Camera preview with overlay"></canvas>
 
 <div id="controls">
-  <button id="switchCameraBtn" aria-label="Switch Camera">Reverse Camera</button>
+  <button id="switchCameraBtn" aria-label="Switch Camera"></button>
   <button id="captureBtn" aria-label="Capture Picture">Capture</button>
 </div>
 
@@ -86,7 +86,7 @@
   const loadingText = document.getElementById('loadingText');
 
   let stream = null;
-  let usingFrontCamera = true;
+  let usingFrontCamera = false; // Default to back camera (will fix below on load)
   let video = null;
   let overlayImg = new Image();
   overlayImg.src = 'asset.png'; // overlay PNG path
@@ -102,6 +102,25 @@
     lastX: 0,
     lastY: 0,
   };
+
+  // ---------- Responsive/Init for back camera default -----------
+  function detectDeviceAndSetCamera() {
+    if (window.innerWidth <= 1024) {
+      // On phone/tablet: back camera by default
+      usingFrontCamera = false;
+    } else {
+      // On desktop: remain as last state or default to front
+      usingFrontCamera = true;
+    }
+    updateCameraButtonText();
+  }
+  detectDeviceAndSetCamera();
+
+  // Update the switch button text based on camera mode
+  function updateCameraButtonText() {
+    switchBtn.textContent = usingFrontCamera ? "Back Camera" : "Front Camera";
+  }
+  // -------------------------------------------------------------
 
   function resizeCanvas() {
     if (!video || video.videoWidth === 0 || video.videoHeight === 0) return;
@@ -146,7 +165,10 @@
     video.muted = true;
     loadingText.style.display = 'block';
 
-    navigator.mediaDevices.getUserMedia({video: {facingMode: usingFrontCamera ? 'user' : 'environment'}, audio:false})
+    navigator.mediaDevices.getUserMedia({
+      video: {facingMode: usingFrontCamera ? 'user' : 'environment'},
+      audio: false
+    })
       .then(s => {
         stream = s;
         video.srcObject = stream;
@@ -218,8 +240,7 @@
     resizeCanvas();
   };
 
-  // --- Multi-touch overlay control ---
-
+  // Multi-touch overlay control
   let isDragging = false;
   let initialDistance = 0;
   let initialAngle = 0;
@@ -271,7 +292,7 @@
         overlayState.lastY = overlayState.y;
         canvas.style.cursor = 'grabbing';
       }
-      initialDistance = 0; // reset multi touch vars
+      initialDistance = 0;
       initialAngle = 0;
       lastScale = overlayState.scale;
       lastRotation = overlayState.rotation;
@@ -319,7 +340,6 @@
     }
   }, {passive:false});
 
-  // Mouse drag fallback for desktop
   canvas.addEventListener('mousedown', e => {
     if(!isOverlayLoaded) return;
     const pos = getPointerPos(e);
@@ -349,6 +369,7 @@
 
   switchBtn.addEventListener('click', () => {
     usingFrontCamera = !usingFrontCamera;
+    updateCameraButtonText();
     startCamera();
   });
 
@@ -408,14 +429,16 @@
     }, 'image/png');
   });
 
-  // Initialize
+  // Initialization
   window.addEventListener('resize', () => {
+    detectDeviceAndSetCamera();
     if(video && video.videoWidth) resizeCanvas();
   });
 
   resizeCanvas();
+  updateCameraButtonText();
   startCamera();
-
 </script>
+
 </body>
 </html>
