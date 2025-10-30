@@ -1,11 +1,10 @@
 <!DOCTYPE html>
-<html lang="en">
-
+<html lang="en"> 
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Responsive Camera Preview with Overlay and Desktop Demo</title>
-  <style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Responsive Camera Preview with Overlay and Desktop Demo</title>
+<style>
     html,
     body {
       margin: 0;
@@ -614,6 +613,114 @@
   canvas.addEventListener('contextmenu', e => e.preventDefault());
 
 
+  // Added touch handlers for move, scale, rotate
+  let ongoingTouches = [];
+
+  function copyTouch(touch) {
+    return { identifier: touch.identifier, clientX: touch.clientX, clientY: touch.clientY };
+  }
+
+  function ongoingTouchIndexById(idToFind) {
+    for (let i = 0; i < ongoingTouches.length; i++) {
+      if (ongoingTouches[i].identifier === idToFind) {
+        return i;
+      }
+    }
+    return -1;
+  }
+
+  function getDistance(touch1, touch2) {
+    const dx = touch2.clientX - touch1.clientX;
+    const dy = touch2.clientY - touch1.clientY;
+    return Math.sqrt(dx * dx + dy * dy);
+  }
+
+  function getAngle(touch1, touch2) {
+    const dx = touch2.clientX - touch1.clientX;
+    const dy = touch2.clientY - touch1.clientY;
+    return Math.atan2(dy, dx) * 180 / Math.PI;
+  }
+
+  let lastAngle = 0;
+  let lastDistance = 0;
+
+  canvas.addEventListener('touchstart', function (evt) {
+    evt.preventDefault();
+    const touches = evt.changedTouches;
+    for (let i = 0; i < touches.length; i++) {
+      ongoingTouches.push(copyTouch(touches[i]));
+    }
+    if (ongoingTouches.length === 1) {
+      const touch = ongoingTouches[0];
+      if (isPointInOverlay(touch.clientX - canvas.getBoundingClientRect().left, touch.clientY - canvas.getBoundingClientRect().top)) {
+        isDraggingOverlay = true;
+        dragStartX = touch.clientX - canvas.getBoundingClientRect().left;
+        dragStartY = touch.clientY - canvas.getBoundingClientRect().top;
+        overlayState.lastX = overlayState.x;
+        overlayState.lastY = overlayState.y;
+        canvas.style.cursor = 'grabbing';
+      }
+    } else if (ongoingTouches.length === 2) {
+      // Set initial rotation and distance for multi-touch gestures
+      lastDistance = getDistance(ongoingTouches[0], ongoingTouches[1]);
+      lastAngle = getAngle(ongoingTouches[0], ongoingTouches[1]);
+      isDraggingOverlay = false;
+    }
+  }, { passive: false });
+
+  canvas.addEventListener('touchmove', function (evt) {
+    evt.preventDefault();
+    const touches = evt.changedTouches;
+    for (let i = 0; i < touches.length; i++) {
+      const idx = ongoingTouchIndexById(touches[i].identifier);
+      if (idx >= 0) {
+        ongoingTouches.splice(idx, 1, copyTouch(touches[i]));
+      }
+    }
+
+    if (ongoingTouches.length === 1 && isDraggingOverlay) {
+      const touch = ongoingTouches[0];
+      const posX = touch.clientX - canvas.getBoundingClientRect().left;
+      const posY = touch.clientY - canvas.getBoundingClientRect().top;
+      overlayState.x = overlayState.lastX + (posX - dragStartX);
+      overlayState.y = overlayState.lastY + (posY - dragStartY);
+    } else if (ongoingTouches.length === 2) {
+      const newDistance = getDistance(ongoingTouches[0], ongoingTouches[1]);
+      const newAngle = getAngle(ongoingTouches[0], ongoingTouches[1]);
+
+      // Scale
+      const scaleChange = newDistance / lastDistance;
+      overlayState.scale = Math.min(Math.max(overlayState.scale * scaleChange, 0.1), 10);
+      lastDistance = newDistance;
+
+      // Rotate
+      const angleChange = newAngle - lastAngle;
+      overlayState.rotation = (overlayState.rotation + angleChange) % 360;
+      lastAngle = newAngle;
+    }
+  }, { passive: false });
+
+  canvas.addEventListener('touchend', function (evt) {
+    evt.preventDefault();
+    const touches = evt.changedTouches;
+    for (let i = 0; i < touches.length; i++) {
+      const idx = ongoingTouchIndexById(touches[i].identifier);
+      if (idx >= 0) {
+        ongoingTouches.splice(idx, 1);
+      }
+    }
+    if (ongoingTouches.length === 0) {
+      isDraggingOverlay = false;
+      canvas.style.cursor = 'grab';
+    }
+  }, { passive: false });
+
+  canvas.addEventListener('touchcancel', function (evt) {
+    evt.preventDefault();
+    ongoingTouches = [];
+    isDraggingOverlay = false;
+    canvas.style.cursor = 'grab';
+  }, { passive: false });
 
     detectDeviceAndToggleContainers();
   </script>
