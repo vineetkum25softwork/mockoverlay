@@ -69,7 +69,6 @@
       cursor: pointer;
       font-weight: bold;
       user-select: none;
-      transition: background 0.3s ease;
     }
 
     #switchCameraBtn {
@@ -520,6 +519,101 @@
       detectDeviceAndToggleContainers();
       if (video && video.videoWidth) resizeCanvas();
     });
+
+
+  let isDraggingOverlay = false;
+  let dragStartX = 0;
+  let dragStartY = 0;
+  let initialRotation = 0;
+
+  function getMousePos(evt) {
+    const rect = canvas.getBoundingClientRect();
+    return {
+      x: evt.clientX - rect.left,
+      y: evt.clientY - rect.top
+    };
+  }
+
+  function isPointInOverlay(x, y) {
+    // Calculate bounding box with rotation for overlay hit test
+    const iw = overlayImage.width * overlayState.scale;
+    const ih = overlayImage.height * overlayState.scale;
+    const cx = overlayState.x + iw / 2;
+    const cy = overlayState.y + ih / 2;
+
+    // Translate point to overlay center
+    const dx = x - cx;
+    const dy = y - cy;
+    const rad = -overlayState.rotation * Math.PI / 180;
+    const rdx = dx * Math.cos(rad) - dy * Math.sin(rad);
+    const rdy = dx * Math.sin(rad) + dy * Math.cos(rad);
+
+    return rdx >= -iw / 2 && rdx <= iw / 2 && rdy >= -ih / 2 && rdy <= ih / 2;
+  }
+
+  // Drag to move - left mouse button or single touch
+  canvas.addEventListener('mousedown', e => {
+    if (e.button === 0) { // left mouse button only
+      const pos = getMousePos(e);
+      if (isPointInOverlay(pos.x, pos.y)) {
+        isDraggingOverlay = true;
+        dragStartX = pos.x;
+        dragStartY = pos.y;
+        overlayState.lastX = overlayState.x;
+        overlayState.lastY = overlayState.y;
+        canvas.style.cursor = 'grabbing';
+      }
+    }
+  });
+
+  window.addEventListener('mousemove', e => {
+    if (!isDraggingOverlay) return;
+    const pos = getMousePos(e);
+    overlayState.x = overlayState.lastX + (pos.x - dragStartX);
+    overlayState.y = overlayState.lastY + (pos.y - dragStartY);
+  });
+
+  window.addEventListener('mouseup', e => {
+    if (isDraggingOverlay) {
+      isDraggingOverlay = false;
+      canvas.style.cursor = 'grab';
+    }
+  });
+
+  // Rotate overlay with right mouse button drag (horizontal movement)
+  let isRotatingOverlay = false;
+  let rotateStartX = 0;
+  let startRotation = 0;
+
+  canvas.addEventListener('mousedown', e => {
+    if (e.button === 2) { // right mouse button
+      const pos = getMousePos(e);
+      if (isPointInOverlay(pos.x, pos.y)) {
+        isRotatingOverlay = true;
+        rotateStartX = pos.x;
+        startRotation = overlayState.rotation;
+        e.preventDefault(); // prevent context menu
+      }
+    }
+  });
+
+  window.addEventListener('mousemove', e => {
+    if (!isRotatingOverlay) return;
+    const pos = getMousePos(e);
+    const diff = pos.x - rotateStartX;
+    overlayState.rotation = (startRotation + diff) % 360;
+  });
+
+  window.addEventListener('mouseup', e => {
+    if (isRotatingOverlay) {
+      isRotatingOverlay = false;
+    }
+  });
+
+  // Disable browser context menu on canvas to allow right click rotate
+  canvas.addEventListener('contextmenu', e => e.preventDefault());
+
+
 
     detectDeviceAndToggleContainers();
   </script>
