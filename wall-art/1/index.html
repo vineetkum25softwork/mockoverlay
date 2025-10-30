@@ -148,6 +148,135 @@
       }
     }
 
+    // --- Multi-touch overlay control ---
+
+    let isDragging = false;
+    let initialDistance = 0;
+    let initialAngle = 0;
+    let lastScale = 1;
+    let lastRotation = 0;
+    let isTouchDragging = false;
+    let lastTouchCenter = { x: 0, y: 0 };
+
+    function getPointerPos(evt) {
+      const rect = canvas.getBoundingClientRect();
+      if (evt.touches) {
+        return { x: evt.touches[0].clientX - rect.left, y: evt.touches[0].clientY - rect.top };
+      }
+      return { x: evt.clientX - rect.left, y: evt.clientY - rect.top };
+    }
+
+    function pointInRotatedRect(px, py, rx, ry, rw, rh, angle) {
+      const cx = rx + rw / 2;
+      const cy = ry + rh / 2;
+      const dx = px - cx;
+      const dy = py - cy;
+      const rad = -angle * Math.PI / 180;
+      const rdx = dx * Math.cos(rad) - dy * Math.sin(rad);
+      const rdy = dx * Math.sin(rad) + dy * Math.cos(rad);
+      return rdx > -rw / 2 && rdx < rw / 2 && rdy > -rh / 2 && rdy < rh / 2;
+    }
+
+    function getDistance(t1, t2) {
+      return Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
+    }
+    function getAngle(t1, t2) {
+      return Math.atan2(t2.clientY - t1.clientY, t2.clientX - t1.clientX) * 180 / Math.PI;
+    }
+    function getTouchCenter(t1, t2) {
+      return { x: (t1.clientX + t2.clientX) / 2 - canvas.getBoundingClientRect().left, y: (t1.clientY + t2.clientY) / 2 - canvas.getBoundingClientRect().top };
+    }
+
+    canvas.addEventListener('touchstart', e => {
+      if (!isOverlayLoaded) return;
+      if (e.touches.length === 1) {
+        const pos = getPointerPos(e);
+        const ow = overlayImg.width * overlayState.scale;
+        const oh = overlayImg.height * overlayState.scale;
+        if (pointInRotatedRect(pos.x, pos.y, overlayState.x, overlayState.y, ow, oh, overlayState.rotation)) {
+          isTouchDragging = true;
+          overlayState.dragStartX = pos.x;
+          overlayState.dragStartY = pos.y;
+          overlayState.lastX = overlayState.x;
+          overlayState.lastY = overlayState.y;
+          canvas.style.cursor = 'grabbing';
+        }
+        initialDistance = 0; // reset multi touch vars
+        initialAngle = 0;
+        lastScale = overlayState.scale;
+        lastRotation = overlayState.rotation;
+      } else if (e.touches.length === 2) {
+        isTouchDragging = false;
+        initialDistance = getDistance(e.touches[0], e.touches[1]);
+        initialAngle = getAngle(e.touches[0], e.touches[1]);
+        lastScale = overlayState.scale;
+        lastRotation = overlayState.rotation;
+        lastTouchCenter = getTouchCenter(e.touches[0], e.touches[1]);
+      }
+    }, { passive: false });
+
+    canvas.addEventListener('touchmove', e => {
+      if (!isOverlayLoaded) return;
+      e.preventDefault();
+      if (e.touches.length === 1 && isTouchDragging) {
+        const pos = getPointerPos(e);
+        overlayState.x = overlayState.lastX + (pos.x - overlayState.dragStartX);
+        overlayState.y = overlayState.lastY + (pos.y - overlayState.dragStartY);
+      } else if (e.touches.length === 2) {
+        const currDistance = getDistance(e.touches[0], e.touches[1]);
+        const currAngle = getAngle(e.touches[0], e.touches[1]);
+        const scaleChange = currDistance / initialDistance;
+        overlayState.scale = lastScale * scaleChange;
+
+        const rotationChange = currAngle - initialAngle;
+        overlayState.rotation = lastRotation + rotationChange;
+
+        const currCenter = getTouchCenter(e.touches[0], e.touches[1]);
+        const dx = currCenter.x - lastTouchCenter.x;
+        const dy = currCenter.y - lastTouchCenter.y;
+
+        overlayState.x += dx;
+        overlayState.y += dy;
+
+        lastTouchCenter = currCenter;
+      }
+    }, { passive: false });
+
+    canvas.addEventListener('touchend', e => {
+      if (e.touches.length === 0) {
+        isTouchDragging = false;
+        canvas.style.cursor = 'grab';
+      }
+    }, { passive: false });
+
+    // Mouse drag fallback for desktop
+    canvas.addEventListener('mousedown', e => {
+      if (!isOverlayLoaded) return;
+      const pos = getPointerPos(e);
+      const ow = overlayImg.width * overlayState.scale;
+      const oh = overlayImg.height * overlayState.scale;
+      if (pointInRotatedRect(pos.x, pos.y, overlayState.x, overlayState.y, ow, oh, overlayState.rotation)) {
+        isDragging = true;
+        overlayState.dragStartX = pos.x;
+        overlayState.dragStartY = pos.y;
+        overlayState.lastX = overlayState.x;
+        overlayState.lastY = overlayState.y;
+        canvas.style.cursor = 'grabbing';
+      }
+    });
+    window.addEventListener('mousemove', e => {
+      if (!isDragging) return;
+      const pos = getPointerPos(e);
+      overlayState.x = overlayState.lastX + (pos.x - overlayState.dragStartX);
+      overlayState.y = overlayState.lastY + (pos.y - overlayState.dragStartY);
+    });
+    window.addEventListener('mouseup', e => {
+      if (isDragging) {
+        isDragging = false;
+        canvas.style.cursor = 'grab';
+      }
+    });
+
     function resizeCanvas() {
       if (!video || video.videoWidth === 0 || video.videoHeight === 0) return;
 
@@ -262,9 +391,6 @@
       isOverlayLoaded = true;
       resizeCanvas();
     };
-
-    // Touch and mouse event handlers omitted here for brevity. 
-    // (Include your existing touch and mouse event handlers here.)
 
     switchBtn.addEventListener('click', () => {
       usingFrontCamera = !usingFrontCamera;
