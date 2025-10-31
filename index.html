@@ -93,9 +93,6 @@
     text-decoration: none;
   }
 
-  .littleside {
-    margin-left: 30px;
-  }
 
   h1 {
     font-size: 40px;
@@ -186,8 +183,14 @@
     margin-top: 0.5in;
   }
 
-  .output-col {
-    padding: 48px 30px;
+  .overview-box {
+    padding: 25px 15px 0px 15px;
+    font-size: 1.05rem;
+    line-height: 1.5;
+  }
+
+  .example-box {
+    padding: 0px 8px 18px 8px;
     font-size: 1.05rem;
     line-height: 1.5;
   }
@@ -289,7 +292,6 @@
     background: #fcfcff;
     border-radius: 19px;
     box-shadow: 0 8px 34px -8px #4b2ca34a;
-    padding: 40px 26px;
     margin-bottom: 38px;
     border: 1.5px solid #ececff;
   }
@@ -316,9 +318,6 @@
       padding: 0;
     }
 
-    .littleside {
-      margin-left: 7px;
-    }
   }
 
   .link-inner {
@@ -457,6 +456,7 @@
   <main class="container-fluid">
     <div class="introdiv row">
       <div class="col-lg-6 col-md-6 col-12">
+
         <div class="for-wall-art-seller">
           Made For
           <span class="for-wall-art-highlight pen-underline">
@@ -478,7 +478,7 @@
           <div id="wallArt"
             style="background-image: url('https://png.pngtree.com/png-clipart/20240514/original/pngtree-abstract-aesthetic-boho-botanical-with-shapes-minimal-design-boho-wall-art-png-image_15093543.png')">
           </div>
-          <a href="https://vineetkum25softwork.github.io/mockoverlay/wall-art/demo/index.html" id="openCameraBtn" aria-label="Open camera overlay preview">Open
+          <a href="/wall-art/demo/index.html" id="openCameraBtn" aria-label="Open camera overlay preview">Open
             Camera</a>
         </div>
       </div>
@@ -494,33 +494,42 @@
     <div class="custom-you-will-get">You will Get</div>
 
     <div class="row justify-content-center mt-4">
-      <div class="col-lg-8 col-md-10 col-12 mx-auto">
+      <div class="col-lg-8 col-md-10 col-12 mx-auto px-0">
         <div class="output-col">
-          <h2 style="font-size: 25px;">QR Code</h2> <br />
-          <div class="littleside">
-            <img class="qr-img"
-              src="https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=https://mockoverlay.com/wallart/yourid"
-              alt="Preview QR Code" />
-            <div class="output-text">You can place QR code into your product mockup images.</div>
-            <h5 class="mb-3 mt-5" style="font-weight:600;color:#3c3a50">Example</h5>
-            <div class="example-image">
-              <img id="mockupdemo" src="https://vineetkum25softwork.github.io/mockoverlay/media/mockupdemo.jpg" alt="" srcset="">
+          <div class="overview-box">
+            <h2 style="font-size: 25px;">QR Code</h2> <br />
+            <div class="littleside">
+              <img class="qr-img"
+                src="https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=https://mockoverlay.com/wallart/yourid"
+                alt="Preview QR Code" />
+              <div class="output-text">You can place QR code into your product mockup images.</div>
             </div>
           </div>
+          <div class="example-box">
+            <h5 class="mb-3 mt-5" style="font-weight:600;color:#3c3a50">Example</h5>
+            <div class="example-image">
+              <img id="mockupdemo" src="/media/mockupdemo.jpg" alt="" srcset="">
+            </div>
+          </div>
+
         </div>
       </div>
 
-      <div class="col-lg-8 col-md-10 col-12 mx-auto">
+
+      <div class="col-lg-8 col-md-10 col-12 mx-auto px-0">
         <div class="output-col">
-          <h2 style="font-size: 25px;">Link</h2> <br />
-          <div class="littleside">
-            <div class="output-linkbox-center">
+          <div class="overview-box">
+            <h2 style="font-size: 25px;">Link</h2>
+
+            <div class="output-linkbox-center mt-4">
               <div class="link-inner">
                 <input type="text" readonly value="https://mockoverlay.com/wallart/yourid" />
               </div>
             </div>
             <div class="output-text">You can add this link in your product description or anywhere.</div>
-            <div>
+
+
+            <div class="example-box">
               <h5 class="mb-3 mt-5" style="font-weight:600;color:#3c3a50">Example</h5>
               <div class="example-image">
                 <p>Add image</p>
@@ -596,6 +605,4 @@
   </script>
 </body>
 
-
 </html>
-
