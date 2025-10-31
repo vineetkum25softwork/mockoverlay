@@ -257,7 +257,8 @@
 
   #openCameraBtn {
     position: absolute;
-    bottom: 20%;
+    text-decoration: none;
+    bottom: 10%;
     left: 50%;
     transform: translateX(-50%);
     width: 80%;
@@ -436,13 +437,6 @@
           Made For
           <span class="for-wall-art-highlight pen-underline">
             Wall Art Seller
-            <svg class="underline-svg" width="100%" height="10" viewBox="0 0 100 10" preserveAspectRatio="none"
-              xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
-              <line x1="0" y1="3" x2="100" y2="1.5" stroke="#9d0286" stroke-width="2" stroke-linecap="round"
-                stroke-dasharray="105" stroke-dashoffset="105" />
-              <line x1="0" y1="7" x2="100" y2="5.5" stroke="#9d0286" stroke-width="2" stroke-linecap="round"
-                stroke-dasharray="105" stroke-dashoffset="105" />
-            </svg>
           </span>
         </div>
         <h1>Let people see your wall art on their own wall</h1>
@@ -460,7 +454,7 @@
           <div id="wallArt"
             style="background-image: url('https://png.pngtree.com/png-clipart/20240514/original/pngtree-abstract-aesthetic-boho-botanical-with-shapes-minimal-design-boho-wall-art-png-image_15093543.png')">
           </div>
-          <button id="openCameraBtn" aria-label="Open camera overlay preview">Open Camera</button>
+          <a href="/wall-art/demo/index.html" id="openCameraBtn" aria-label="Open camera overlay preview">Open Camera</a>
         </div>
       </div>
     </div>
@@ -469,19 +463,6 @@
       If you will create such
       <span class="cursive-highlight pen-underline">
         camera preview mockup
-        <svg class="underline-svg" width="100%" height="10" viewBox="0 0 100 10" preserveAspectRatio="none"
-          xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
-          <defs>
-            <linearGradient id="grad" x1="0" y1="0" x2="1" y2="0">
-              <stop stop-color="#FF4D94" />
-              <stop offset="100%" stop-color="#7B2FF7" />
-            </linearGradient>
-          </defs>
-          <line x1="0" y1="3" x2="100" y2="1.5" stroke="url(#grad)" stroke-width="2" stroke-linecap="round"
-            stroke-dasharray="105" stroke-dashoffset="105" />
-          <line x1="0" y1="7" x2="100" y2="5.5" stroke="url(#grad)" stroke-width="2" stroke-linecap="round"
-            stroke-dasharray="105" stroke-dashoffset="105" />
-        </svg>
       </span>
       then
     </div>
@@ -542,37 +523,43 @@
     let step = 0;
     let slideInterval, wallArtInterval;
     function slideImage() {
-      imageContainer.style.transform = toLeft ? 'translateX(-100px)' : 'translateX(0)';
+      imageContainer.style.transform = toLeft ? 'translateX(-70px)' : 'translateX(0)';
       toLeft = !toLeft;
     }
     function animateWallArt() {
       switch (step) {
+
         case 0:
-          wallArtDiv.style.transform = 'scale(0.6) translateY(-20%)';
+          wallArtDiv.style.transform = "scale(0.6) translateY(-20%) ";
           break;
         case 1:
-          wallArtDiv.style.transform = 'scale(0.5) translateY(-20%)';
+          wallArtDiv.style.transform = "scale(0.4) translateY(-30%) ";
           break;
         case 2:
-          wallArtDiv.style.transform = 'scale(0.55) translateY(-20%)';
+          wallArtDiv.style.transform = "scale(0.55) translateY(-18%) ";
           break;
         case 3:
-          wallArtDiv.style.transform = 'scale(0.5) translateY(-20%)';
+          wallArtDiv.style.transform = "scale(0.64) translateY(-21%) ";
           break;
         case 4:
-          wallArtDiv.style.transform = 'scale(0.45) translateY(-22%)';
+          wallArtDiv.style.transform = "scale(0.45) translateY(-20%) ";
           break;
         case 5:
-          wallArtDiv.style.transform = 'scale(0.4) translateY(-20%)';
+          wallArtDiv.style.transform = "scale(0.38) translateY(-28%) ";
           break;
         case 6:
-          wallArtDiv.style.transform = 'scale(0.5) translateY(-18%)';
+          wallArtDiv.style.transform = "scale(0.5) translateY(-18%) ";
           break;
         case 7:
-        case 8:
-        case 9:
-          wallArtDiv.style.transform = 'scale(0.4) translateY(-20%)';
+          wallArtDiv.style.transform = "scale(0.4) translateY(-23%) ";
           break;
+        case 8:
+          wallArtDiv.style.transform = "scale(0.55) translateY(-19%) ";
+          break;
+        case 9:
+          wallArtDiv.style.transform = "scale(0.4) translateY(-25%) ";
+          break;
+
       }
       step = (step + 1) % 10;
     }
@@ -587,54 +574,6 @@
       window.location.href = '/camera-overlay.html';
     });
 
-    // Intersection Observer to animate SVG underline stroke-dashoffset after 3s delay when in viewport, reset on exit
-    document.addEventListener("DOMContentLoaded", () => {
-      const penUnderlines = document.querySelectorAll('.pen-underline');
-
-      const options = {
-        root: null,
-        rootMargin: '0px',
-        threshold: 0.5,
-      };
-
-      penUnderlines.forEach(container => {
-        const lines = container.querySelectorAll('line');
-        let timeoutId = null;
-
-        const resetLines = () => {
-          lines.forEach(line => {
-            line.style.transition = 'none';
-            line.style.strokeDashoffset = line.getAttribute('stroke-dasharray');
-          });
-        };
-
-        const animateLines = () => {
-          lines.forEach(line => {
-            line.style.transition = 'stroke-dashoffset 0.8s ease forwards';
-            line.style.strokeDashoffset = '0';
-          });
-        };
-
-        const observer = new IntersectionObserver(entries => {
-          entries.forEach(entry => {
-            if (entry.isIntersecting) {
-              timeoutId = setTimeout(() => {
-                animateLines();
-              }, 3000);
-            } else {
-              if (timeoutId) {
-                clearTimeout(timeoutId);
-                timeoutId = null;
-              }
-              resetLines();
-            }
-          });
-        }, options);
-
-        resetLines();
-        observer.observe(container);
-      });
-    });
   </script>
 </body>
 
