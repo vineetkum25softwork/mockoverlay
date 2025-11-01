@@ -402,8 +402,8 @@
   }
 
   footer {
-    background: linear-gradient(90deg, #dbe2ff 0%, #b8baff 100%);
-    color: #6d74c2;
+    background: linear-gradient(90deg, #dfe3f5 0%, #f7f7ff 100%);
+    color: #414683;
     font-size: 1.13rem;
     font-weight: 600;
     border-radius: 18px 18px 0 0;
@@ -456,8 +456,8 @@
 <body>
   <header>MOCKOVERLAY</header>
   <nav>
-    <a href="https://vineetkum25softwork.github.io/mockoverlay/" class="selected">Wall Art</a>
-    <a href="https://vineetkum25softwork.github.io/mockoverlay/sticker.html">Stickers</a>
+    <a href="index.html" class="selected">Wall Art</a>
+    <a href="sticker.html">Stickers</a>
   </nav>
   <main class="container-fluid">
     <div class="introdiv row">
@@ -471,7 +471,7 @@
         </div>
         <h1>Let people see your wall art on their own wall</h1>
         <div class="create-cta">
-          <a href="https://vineetkum25softwork.github.io/mockoverlay/create.html" aria-label="Create your custom wall art preview">Create</a>
+          <a href="/create.html" aria-label="Create your custom wall art preview">Create</a>
         </div>
       </div>
       <div class="col-lg-6 col-md-6 col-12">
@@ -484,7 +484,7 @@
           <div id="wallArt"
             style="background-image: url('https://png.pngtree.com/png-clipart/20240514/original/pngtree-abstract-aesthetic-boho-botanical-with-shapes-minimal-design-boho-wall-art-png-image_15093543.png')">
           </div>
-          <a href="https://vineetkum25softwork.github.io/mockoverlay/wall-art/demo/index.html" id="openCameraBtn" aria-label="Open camera overlay preview">Open
+          <a href="/wall-art/demo/index.html" id="openCameraBtn" aria-label="Open camera overlay preview">Open
             Camera</a>
         </div>
       </div>
@@ -506,7 +506,7 @@
             <h2 style="font-size: 25px;">QR Code</h2> <br />
             <div class="littleside">
               <img class="qr-img"
-                src="https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=https://mockoverlay.com/wallart/yourid"
+                src="https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=https://mockoverlay.com/wallart/Your-Id"
                 alt="Preview QR Code" />
               <div class="output-text">You can place QR code into your product mockup images.</div>
             </div>
@@ -514,7 +514,7 @@
           <div class="example-box">
             <h5 class="mb-4 mt-5 ms-2" style="font-weight:600;color:#3c3a50">Example</h5>
             <div class="example-image">
-              <img id="mockupdemo" src="https://vineetkum25softwork.github.io/mockoverlay/media/mockupdemo.jpg" alt="" srcset="">
+              <img id="mockupdemo" src="/media/mockupdemo.jpg" alt="" srcset="">
             </div>
           </div>
 
@@ -539,8 +539,20 @@
     </div>
   </main>
   <footer class="container-fluid mt-5">
-    &copy; 2025 MOCKOVERLAY. Contact us on <a href="https://wa.me/YOURWHATSAPPNUMBER" target="_blank"
-      rel="noopener noreferrer">WhatsApp</a>.
+    <ul class="nav justify-content-center" style="font-size: 15px;">
+      <li class="nav-item">
+        <a class="nav-link" href="#">Privacy</a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" href="#">Terms & Conditions</a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" href="#">Cookies</a>
+      </li>
+
+    </ul>
+    <br>
+    <p>&copy; 2025 MOCKOVERLAY</p>
   </footer>
   <script>
     const imageContainer = document.getElementById('imageContainer');
@@ -602,6 +614,5 @@
 
   </script>
 </body>
-
 
 </html>

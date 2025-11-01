@@ -402,7 +402,7 @@
   }
 
   footer {
-    background: linear-gradient(90deg, #dbe2ff 0%, #b8baff 100%);
+    background: linear-gradient(90deg, #d0d5ed 0%, #e9eaff 100%);
     color: #6d74c2;
     font-size: 1.13rem;
     font-weight: 600;
@@ -450,14 +450,38 @@
     }
 
   }
+
+  footer {
+    background: linear-gradient(90deg, #dfe3f5 0%, #f7f7ff 100%);
+    color: #414683;
+    font-size: 1.13rem;
+    font-weight: 600;
+    border-radius: 18px 18px 0 0;
+    text-align: center;
+    margin: 48px auto 0 auto;
+    padding: 28px 10px 22px 10px;
+    letter-spacing: 0.02em;
+    box-shadow: 0 -2px 18px -9px #6d74c267;
+  }
+
+  footer a {
+    color: #5E60CE;
+    text-decoration: underline;
+    font-weight: 800;
+    transition: color 0.18s;
+  }
+
+  footer a:hover {
+    color: #B5179E;
+  }
 </style>
 </head>
 
 <body>
   <header>MOCKOVERLAY</header>
   <nav>
-    <a href="https://vineetkum25softwork.github.io/mockoverlay/">Wall Art</a>
-    <a href="https://vineetkum25softwork.github.io/mockoverlay/sticker.html" class="selected"  >Stickers</a>
+    <a href="../index.html">Wall Art</a>
+    <a href="../sticker/index.html" class="selected">Stickers</a>
   </nav>
   <main class="container-fluid">
     <div class="introdiv row">
@@ -471,7 +495,7 @@
         </div>
         <h1>Let people see your sticker product on their object</h1>
         <div class="create-cta">
-          <a href="https://vineetkum25softwork.github.io/mockoverlay/create.html" aria-label="Create your custom wall art preview">Create</a>
+          <a href="/create.html?for=sticker" aria-label="Create your custom wall art preview">Create</a>
         </div>
       </div>
       <div class="col-lg-6 col-md-6 col-12">
@@ -484,7 +508,7 @@
           <div id="wallArt"
             style="background-image: url('https://png.pngtree.com/png-clipart/20240514/original/pngtree-abstract-aesthetic-boho-botanical-with-shapes-minimal-design-boho-wall-art-png-image_15093543.png')">
           </div>
-          <a href="https://vineetkum25softwork.github.io/mockoverlay/wall-art/demo/index.html" id="openCameraBtn" aria-label="Open camera overlay preview">Open
+          <a href="/wall-art/demo/index.html" id="openCameraBtn" aria-label="Open camera overlay preview">Open
             Camera</a>
         </div>
       </div>
@@ -514,7 +538,7 @@
           <div class="example-box">
             <h5 class="mb-4 mt-5 ms-2" style="font-weight:600;color:#3c3a50">Example</h5>
             <div class="example-image">
-              <img id="mockupdemo" src="https://vineetkum25softwork.github.io/mockoverlay/media/mockupdemo.jpg" alt="" srcset="">
+              <img id="mockupdemo" src="/media/sticker-mockupdemo.jpg" alt="" srcset="">
             </div>
           </div>
 
@@ -547,8 +571,20 @@
     </div>
   </main>
   <footer class="container-fluid mt-5">
-    &copy; 2025 MOCKOVERLAY. Contact us on <a href="https://wa.me/YOURWHATSAPPNUMBER" target="_blank"
-      rel="noopener noreferrer">WhatsApp</a>.
+    <ul class="nav justify-content-center" style="font-size: 15px;">
+      <li class="nav-item">
+        <a class="nav-link" href="#">Privacy</a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" href="#">Terms & Conditions</a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" href="#">Cookies</a>
+      </li>
+
+    </ul>
+    <br>
+    <p>&copy; 2025 MOCKOVERLAY</p>
   </footer>
   <script>
     const imageContainer = document.getElementById('imageContainer');
@@ -610,6 +646,5 @@
 
   </script>
 </body>
-
 
 </html>

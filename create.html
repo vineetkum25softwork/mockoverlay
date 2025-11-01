@@ -70,7 +70,7 @@
       color: white;
     }
 
-    h2 {
+    .processtext {
       font-weight: 700;
       color: #75399e;
       margin-bottom: 28px;
@@ -99,14 +99,16 @@
     }
 
     footer {
-      text-align: center;
-      color: #6d74c2;
+      background: linear-gradient(90deg, #dfe3f5 0%, #f7f7ff 100%);
+      color: #414683;
+      font-size: 1.13rem;
       font-weight: 600;
-      padding: 28px 16px;
       border-radius: 18px 18px 0 0;
-      background: linear-gradient(90deg, #dbe2ff 0%, #b8baff 100%);
+      text-align: center;
+      margin: 48px auto 0 auto;
+      padding: 28px 10px 22px 10px;
+      letter-spacing: 0.02em;
       box-shadow: 0 -2px 18px -9px #6d74c267;
-      font-size: 1.1rem;
     }
 
     footer a {
@@ -127,7 +129,8 @@
   <main>
     <!-- Wall Art container -->
     <div id="wall-art-container" style="display:none;">
-      <h1>Create Your Custom Wall Art Preview</h1>
+      <h1>Create Camera Preview Mockup</h1>
+      <h2 class=" mb-5 mt-4">For Wall Art</h2>
       <p class="intro-text">
         To get started, please contact us on WhatsApp. Send us your wall art PNG file, and we'll create a live
         camera-based preview link for you.
@@ -137,7 +140,7 @@
         Contact on WhatsApp
       </a>
       <hr>
-      <h2>Process</h2>
+      <h2 class="processtext mb-5 mt-4">Process</h2>
       <ol>
         <li>Click the WhatsApp button and send your wall art PNG file.</li>
         <li>We upload your PNG and generate your camera preview mockup link.</li>
@@ -154,7 +157,8 @@
 
     <!-- Sticker container -->
     <div id="sticker-container" style="display:none;">
-      <h1>Create Your Custom Sticker Preview</h1>
+      <h1>Create Camera Preview Mockup</h1>
+      <h2 class=" mb-5 mt-4">For Sticker</h2>
       <p class="intro-text">
         Send your sticker design PNG on WhatsApp, and we'll generate your live preview link.
       </p>
@@ -163,7 +167,7 @@
         Contact on WhatsApp
       </a>
       <hr>
-      <h2>Process</h2>
+      <h2 class="processtext">Process</h2>
       <ol>
         <li>Click the WhatsApp button and send your sticker PNG file.</li>
         <li>We upload your PNG and generate your camera preview mockup link.</li>
@@ -177,9 +181,21 @@
     </div>
   </main>
 
-  <footer>
-    &copy; 2025 MOCKOVERLAY. Contact us on <a href="https://wa.me/YOURWHATSAPPNUMBER" target="_blank"
-      rel="noopener noreferrer">WhatsApp</a>.
+  <footer class="container-fluid mt-5">
+    <ul class="nav justify-content-center" style="font-size: 15px;">
+      <li class="nav-item">
+        <a class="nav-link" href="#">Privacy</a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" href="#">Terms & Conditions</a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" href="#">Cookies</a>
+      </li>
+
+    </ul>
+    <br>
+    <p>&copy; 2025 MOCKOVERLAY</p>
   </footer>
 
   <script>
