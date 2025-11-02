@@ -435,6 +435,84 @@
 
 
 
+
+
+
+  /* CSS: Add this to your stylesheet or inside a <style> tag */
+  #page-loader {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: #ffffff;
+    /* White background */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+  }
+
+  .loader-circle {
+    border: 6px solid #e0e0e0;
+    /* Light grey circle background */
+    border-top: 6px solid rgb(223, 86, 223);
+    /* Violet colored front for spinner */
+    border-radius: 50%;
+    width: 50px;
+    height: 50px;
+    animation: spin 1s linear infinite;
+  }
+
+  @keyframes spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+
+  /* Floating Create button, hidden by default */
+  #createFloatingBtn {
+    display: none;
+    position: fixed;
+    bottom: 20px;
+    right: 30px;
+    background-image: linear-gradient(90deg, #F72585 0%, #B5179E 100%);
+    color: #fff;
+    padding: 18px 52px;
+    border-radius: 99px;
+    font-size: 1.28rem;
+    font-weight: 700;
+    border: none;
+    letter-spacing: 0.04em;
+    box-shadow: 0 2px 16px -3px #b5179e67;
+    cursor: pointer;
+    z-index: 10000;
+    text-align: center;
+    text-decoration: none;
+    transition: background 0.22s, box-shadow 0.21s;
+  }
+
+  #createFloatingBtn:hover {
+    background-image: linear-gradient(90deg, #b5179e 0%, #7209b7 100%);
+    box-shadow: 0 4px 20px -2px #b5179e55;
+    color: #fff;
+    text-decoration: none;
+  }
+
+
+  #linkDescription {
+    text-align: center;
+    margin-left: 1in;
+    margin-right: 1in;
+    margin-top: 0.45in;
+    margin-bottom: 0.35in;
+    font-size: 40px;
+    font-weight: 600;
+    color: #560574;
+  }
+
+
   /* Desktop overrides */
   @media (min-width: 1025px) {
     #mockupdemo {
@@ -449,11 +527,38 @@
       width: 100%;
     }
 
+    #linkDescription {
+      color: #560574;
+      text-align: center;
+      margin-left: 0.15in;
+      margin-right: 0.15in;
+      margin-top: 0.45in;
+      margin-bottom: 0.35in;
+      font-size: 30px;
+      font-weight: 700;
+    }
+
+  }
+
+  /* Center bottom on phones */
+  @media (max-width: 600px) {
+    #createFloatingBtn {
+      bottom: 20px;
+      right: 50%;
+      transform: translateX(50%);
+    }
   }
 </style>
 </head>
 
 <body>
+  <!-- HTML: Place this inside your <body> at the very top -->
+  <div id="page-loader">
+    <div class="loader-circle"></div>
+  </div>
+
+  <a href="/create.html" id="createFloatingBtn" aria-label="Create your custom wall art preview">Create</a>
+
   <header>MOCKOVERLAY</header>
   <nav>
     <a href="index.html" class="selected">Wall Art</a>
@@ -477,12 +582,9 @@
       <div class="col-lg-6 col-md-6 col-12">
         <div id="phone">
           <div id="imageContainer">
-            <img id="bedroomImage"
-              src="https://www.shutterstock.com/image-illustration/interior-modern-bedroom-beige-walls-600nw-2387252829.jpg"
-              alt="Bedroom" />
+            <img id="bedroomImage" src="/media/wall-demo.jpg" alt="Bedroom" />
           </div>
-          <div id="wallArt"
-            style="background-image: url('https://png.pngtree.com/png-clipart/20240514/original/pngtree-abstract-aesthetic-boho-botanical-with-shapes-minimal-design-boho-wall-art-png-image_15093543.png')">
+          <div id="wallArt" style="background-image: url('/media/wall-art-demo.jpg')">
           </div>
           <a href="/wall-art/demo/index.html" id="openCameraBtn" aria-label="Open camera overlay preview">Open
             Camera</a>
@@ -518,6 +620,11 @@
             </div>
           </div>
 
+          <div id="linkDescription">
+            <hr style="padding-top: 15px;">
+            <span>"Potential customers can scan QR code to see how your wall art looks on their own
+                wall."</span>
+          </div>
         </div>
       </div>
 
@@ -532,7 +639,14 @@
                 <input type="text" readonly value="https://mockoverlay.com/wallart/yourid" />
               </div>
             </div>
-            <div class="output-text">You can use link in your product description or anywhere.</div>
+            <div class="output-text" style=" font-size: 21px; ">You can use link in your product description or
+              anywhere.</div>
+            <div id="linkDescription">
+              <hr style="padding-top: 15px;">
+              <span>"Potential customers can click the link to see how your wall art looks on their own
+                wall."</span>
+            </div>
+
           </div>
         </div>
       </div>
@@ -555,62 +669,117 @@
     <p>&copy; 2025 MOCKOVERLAY</p>
   </footer>
   <script>
-    const imageContainer = document.getElementById('imageContainer');
-    const wallArtDiv = document.getElementById('wallArt');
-    let toLeft = true;
-    let step = 0;
-    let slideInterval, wallArtInterval;
-    function slideImage() {
-      imageContainer.style.transform = toLeft ? 'translateX(-70px)' : 'translateX(0)';
-      toLeft = !toLeft;
-    }
-    function animateWallArt() {
-      switch (step) {
+    document.addEventListener('DOMContentLoaded', function () {
+      const imageContainer = document.getElementById('imageContainer');
+      const wallArtDiv = document.getElementById('wallArt');
+      let toLeft = true;
+      let step = 0;
+      let slideInterval, wallArtInterval;
 
-        case 0:
-          wallArtDiv.style.transform = "scale(0.6) translateY(-20%) ";
-          break;
-        case 1:
-          wallArtDiv.style.transform = "scale(0.4) translateY(-30%) ";
-          break;
-        case 2:
-          wallArtDiv.style.transform = "scale(0.55) translateY(-18%) ";
-          break;
-        case 3:
-          wallArtDiv.style.transform = "scale(0.64) translateY(-21%) ";
-          break;
-        case 4:
-          wallArtDiv.style.transform = "scale(0.45) translateY(-20%) ";
-          break;
-        case 5:
-          wallArtDiv.style.transform = "scale(0.38) translateY(-28%) ";
-          break;
-        case 6:
-          wallArtDiv.style.transform = "scale(0.5) translateY(-18%) ";
-          break;
-        case 7:
-          wallArtDiv.style.transform = "scale(0.4) translateY(-23%) ";
-          break;
-        case 8:
-          wallArtDiv.style.transform = "scale(0.55) translateY(-19%) ";
-          break;
-        case 9:
-          wallArtDiv.style.transform = "scale(0.4) translateY(-25%) ";
-          break;
 
+      function slideImage() {
+        switch (step) {
+          case 0:
+            imageContainer.style.transform = "translateX(-40px) translateY(0px)";
+            break;
+          case 1:
+            imageContainer.style.transform = "translateX(-30px) translateY(0px)";
+            break;
+          case 2:
+            imageContainer.style.transform = "translateX(-40px) translateY(0px)";
+            break;
+          case 3:
+            imageContainer.style.transform = "translateX(-25px) translateY(0px)";
+            break;
+          case 4:
+            imageContainer.style.transform = "translateX(0) translateY(0)";
+            break;
+        }
+        step = (step + 1) % 6;
       }
-      step = (step + 1) % 10;
-    }
-    function startAnimations() {
-      slideInterval = setInterval(slideImage, 5000);
-      wallArtInterval = setInterval(animateWallArt, 5000);
-      slideImage();
-      animateWallArt();
-    }
-    setTimeout(startAnimations, 2500);
-    document.getElementById('openCameraBtn').addEventListener('click', () => {
-      window.location.href = '/camera-overlay.html';
+
+
+
+      function animateWallArt() {
+        switch (step) {
+
+          case 0:
+            wallArtDiv.style.transform = "scale(0.6) translateY(-40%) ";
+            break;
+          case 1:
+            wallArtDiv.style.transform = "scale(0.4) translateY(-30%) ";
+            break;
+          case 2:
+            wallArtDiv.style.transform = "scale(0.55) translateY(-42%) ";
+            break;
+          case 3:
+            wallArtDiv.style.transform = "scale(0.6) translateY(-28%) ";
+            break;
+          case 4:
+            wallArtDiv.style.transform = "scale(0.45) translateY(-20%) ";
+            break;
+          case 5:
+            wallArtDiv.style.transform = "scale(0.38) translateY(-28%) ";
+            break;
+          case 6:
+            wallArtDiv.style.transform = "scale(0.5) translateY(-18%) ";
+            break;
+          case 7:
+            wallArtDiv.style.transform = "scale(0.4) translateY(-23%) ";
+            break;
+          case 8:
+            wallArtDiv.style.transform = "scale(0.55) translateY(-19%) ";
+            break;
+          case 9:
+            wallArtDiv.style.transform = "scale(0.4) translateY(-25%) ";
+            break;
+
+        }
+        step = (step + 1) % 10;
+      }
+      function startAnimations() {
+        slideInterval = setInterval(slideImage, 5000);
+        wallArtInterval = setInterval(animateWallArt, 5000);
+        slideImage();
+        animateWallArt();
+      }
+      setTimeout(startAnimations, 2500);
+      document.getElementById('openCameraBtn').addEventListener('click', () => {
+        window.location.href = '/camera-overlay.html';
+      });
+
+
+
+
+      //For Create button stick bottom during scroll
+      const topCreateBtn = document.querySelector('.create-cta a');
+      const floatingCreateBtn = document.getElementById('createFloatingBtn');
+
+      function checkCreateBtnVisibility() {
+        const rect = topCreateBtn.getBoundingClientRect();
+        if (rect.bottom < 0) {
+          // Top button out of view - show floating button
+          floatingCreateBtn.style.display = 'inline-block';
+        } else {
+          // Top button visible - hide floating button
+          floatingCreateBtn.style.display = 'none';
+        }
+      }
+
+      window.addEventListener('scroll', checkCreateBtnVisibility);
+      checkCreateBtnVisibility();
+
+
     });
+
+    // JavaScript: Place this just before closing </body> or inside a script tag
+    window.addEventListener('load', function () {
+      var loader = document.getElementById('page-loader');
+      if (loader) {
+        loader.style.display = 'none'; // Hide loader after full page load
+      }
+    });
+
 
   </script>
 </body>
